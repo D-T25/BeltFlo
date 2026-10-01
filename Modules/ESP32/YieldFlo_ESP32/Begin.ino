@@ -1,349 +1,268 @@
+// BeltFlo startup. Network / OTA / EEPROM handling is intentionally kept close
+// to the proven YieldFlo ESP32 firmware; only the grain sensors are replaced by
+// the NAU7802 scale and belt proximity input.
 
-// esp_reset_reason() → the shared code set (see ResetReasonCode in the main
-// sketch). Brownout is the one worth catching: a module that dips and reboots
-// mid-job otherwise leaves no trace at all.
 static uint8_t MapResetReason()
 {
-	switch (esp_reset_reason())
-	{
-	case ESP_RST_POWERON:  return 1;
-	case ESP_RST_EXT:      return 2;
-	case ESP_RST_SW:       return 3;
-	case ESP_RST_INT_WDT:
-	case ESP_RST_TASK_WDT:
-	case ESP_RST_WDT:      return 4;
-	case ESP_RST_BROWNOUT: return 5;
-	case ESP_RST_PANIC:    return 6;
-	case ESP_RST_UNKNOWN:  return 0;
-	default:               return 7;
-	}
+    switch (esp_reset_reason())
+    {
+    case ESP_RST_POWERON:  return 1;
+    case ESP_RST_EXT:      return 2;
+    case ESP_RST_SW:       return 3;
+    case ESP_RST_INT_WDT:
+    case ESP_RST_TASK_WDT:
+    case ESP_RST_WDT:      return 4;
+    case ESP_RST_BROWNOUT: return 5;
+    case ESP_RST_PANIC:    return 6;
+    case ESP_RST_UNKNOWN:  return 0;
+    default:               return 7;
+    }
 }
 
 void DoSetup()
 {
-	uint8_t ErrorCount = 0;
-	ResetReasonCode = MapResetReason();
-	Serial.begin(38400);
-	delay(5000);
-	Serial.println();
-	Serial.println();
-	Serial.println(InoDescription);
-	Serial.println();
+    ResetReasonCode = MapResetReason();
 
-	EEPROM.begin(256);
-	LoadData();
+    Serial.begin(38400);
+    delay(1000);
+    Serial.println();
+    Serial.println();
+    Serial.println(InoDescription);
+    Serial.println();
 
+    EEPROM.begin(EEPROM_SIZE);
+    LoadData();
 
-	Serial.println("");
-	Serial.println(InoDescription);
+    // Version from DDMMY InoID.
+    uint16_t yr = InoID % 10 + 2020;
+    uint16_t rest = InoID / 10;
+    uint8_t mn = rest % 100;
+    uint16_t dy = rest / 100;
 
-	// version
-	uint16_t yr = InoID % 10 + 2020;
-	uint16_t rest = InoID / 10;
-	uint8_t mn = rest % 100;
-	uint16_t dy = rest / 100;
+    String fwVer;
+    if (mn <= 12 && dy <= 31)
+    {
+        fwVer = "Firmware Version: v";
+        fwVer += String(yr);
+        fwVer += ".";
+        if (mn < 10) fwVer += "0";
+        fwVer += String(mn);
+        fwVer += ".";
+        if (dy < 10) fwVer += "0";
+        fwVer += String(dy);
+    }
+    else fwVer = "Firmware Version: invalid";
 
-	String fwVer;
-	if (mn <= 12 && dy <= 31)
-	{
-		fwVer = "Firmware Version: v";
-		fwVer += String(yr);
-		fwVer += ".";
-		if (mn < 10) fwVer += "0";
-		fwVer += String(mn);
-		fwVer += ".";
-		if (dy < 10) fwVer += "0";
-		fwVer += String(dy);
-	}
-	else
-	{
-		fwVer = "Firmware Version: invalid";
-	}
-	Serial.println(fwVer);
+    Serial.println(fwVer);
+    Serial.print("Module ID: ");
+    Serial.println(MDL.ID);
+    Serial.println();
 
-	Serial.print("Module ID: ");
-	Serial.println(MDL.ID);
-	Serial.println("");
+    // I2C: YF1 / ESP32 defaults SDA 21, SCL 22. The Load Cell 2 Click NAU7802
+    // is address 0x2A and the SparkFun library configures it for 80 SPS.
+    Wire.begin();
+    Wire.setClock(400000);
+    StartScaleHardware(true);
 
-	// I2C
-	Wire.begin();			// I2C on pins SCL 22, SDA 21
-	Wire.setClock(400000);	//Increase I2C data rate to 400kHz
+    // Belt proximity input. This is the physical input formerly called RPM in
+    // YieldFlo, so the YF1 wiring can be reused without a board change.
+    Serial.print("Starting belt proximity input on GPIO ");
+    Serial.print(MDL.RPMpin);
+    Serial.print(" ... ");
+    if (MDL.RPMpin < NC)
+    {
+        pinMode(MDL.RPMpin, INPUT); // GPIO35 has no internal pull-up; YF1 conditions the signal
+        attachInterrupt(digitalPinToInterrupt(MDL.RPMpin), onRPMedge, RISING);
+        Serial.println("OK.");
+    }
+    else Serial.println("not configured.");
 
-	// ADS1115
-	if (MDL.ADS1115Enabled)
-	{
-		Serial.print("Starting ADS1115 at address ");
-		Serial.println(ADS1115_Address);
-		while (!ADSfound)
-		{
-			Wire.beginTransmission(ADS1115_Address);
-			Wire.write(0b00000000);	//Point to Conversion register
-			Wire.endTransmission();
-			ADSfound = (Wire.requestFrom(ADS1115_Address, 2) == 2);
-			Serial.print(".");
-			delay(500);
-			if (ErrorCount++ > 10) break;
-		}
-		Serial.println("");
-		if (ADSfound)
-		{
-			Serial.println("ADS1115 found.");
-			Serial.println("");
+    // WiFi access point — unchanged architecture from YieldFlo.
+    StartWifiAP();
 
-			// Configure ALERT/RDY pin for conversion-ready mode:
-			// Set Hi_thresh MSB=1 and Lo_thresh MSB=0 — this puts ALERT/RDY
-			// into conversion-ready mode regardless of comparator settings.
-			Wire.beginTransmission(ADS1115_Address);
-			Wire.write(0x02);		// Hi_thresh register
-			Wire.write(0x80);		// 0x8000 MSB
-			Wire.write(0x00);
-			Wire.endTransmission();
+    Serial.println();
+    Serial.println("Starting Web Server");
 
-			Wire.beginTransmission(ADS1115_Address);
-			Wire.write(0x03);		// Lo_thresh register
-			Wire.write(0x00);		// 0x0000
-			Wire.write(0x00);
-			Wire.endTransmission();
+    server.on("/", HandleRoot);
+    server.on("/wifi", HandleWifiPage);
+    server.onNotFound(HandleRoot);
 
-			// Attach interrupt — ALERT/RDY is open-drain active-low
-			pinMode(MDL.AlertPin, INPUT_PULLUP);
-			attachInterrupt(digitalPinToInterrupt(MDL.AlertPin), onADSReady, FALLING);
+    server.on("/generate_204", []() { server.send(204, "text/plain", ""); });
+    server.on("/fwlink", []() { server.send(200, "text/plain", "OK"); });
+    server.on("/hotspot-detect.html", HTTP_GET, []() { server.send(200, "text/html", "<html><body>Portal</body></html>"); });
+    server.on("/ncsi.txt", HTTP_GET, []() { server.send(200, "text/plain", "Microsoft NCSI"); });
+    server.on("/connecttest.txt", HTTP_GET, []() { server.send(200, "text/plain", "Microsoft Connect Test"); });
 
-			// Start first conversion — moisture (AIN0-AIN1 differential, PGA=±4.096V, 16 SPS)
-			Wire.beginTransmission(ADS1115_Address);
-			Wire.write(0x01);		// Config register
-			Wire.write(0b10000011);	// OS=1, MUX=000 (AIN0-AIN1 diff), PGA=001 (4.096V), MODE=1
-			Wire.write(0b00100000);	// DR=001 (16 SPS), COMP_QUE=00
-			Wire.endTransmission();
-		}
-		else
-		{
-			Serial.println("ADS1115 not found.");
-			Serial.println("ADS1115 disabled.");
-			Serial.println("");
-		}
-	}
+    server.on("/update", HTTP_GET, []() {
+        NotePortalRequest();
+        server.sendHeader("Connection", "close");
+        server.send(200, "text/html", GetPageUpdate());
+    });
 
-	// Optical sensor
-	Serial.print("Starting optical sensor ... ");
-	if (MDL.MainPin < NC && (!MDL.UseCompSignal || MDL.CompPin < NC))
-	{
-		pinMode(MDL.MainPin, INPUT);
-		attachInterrupt(digitalPinToInterrupt(MDL.MainPin), onSensorEdge, CHANGE);
-		if (MDL.UseCompSignal)
-		{
-			pinMode(MDL.CompPin, INPUT);
-			attachInterrupt(digitalPinToInterrupt(MDL.CompPin), onSensorEdge, CHANGE);
-		}
-		BeamBlocked = ((digitalRead(MDL.MainPin) == HIGH) == MDL.InvertSensor);	// PNP: HIGH = clear; NPN inverted
-		LastEdgeUs = micros();
-		SegStartUs = LastEdgeUs;
-		Serial.println(MDL.UseCompSignal ? "OK (Main + Comp)." : "OK (Main only).");
-	}
-	else
-	{
-		Serial.println("pins not configured.");
-	}
+    server.begin();
+    MDNS.begin("beltflo");
 
-	// RPM sensor
-	if (MDL.RPMpin < NC)
-	{
-		Serial.print("Starting RPM sensor ... ");
-		pinMode(MDL.RPMpin, INPUT);
-		attachInterrupt(digitalPinToInterrupt(MDL.RPMpin), onRPMedge, RISING);
-		LastRPMedgeUs = micros();
-		Serial.println("OK.");
-	}
+    ESP2SOTA.begin(&server);
+    Serial.println("OTA started.");
 
-	// Wifi access point — see Wifi.ino
-	StartWifiAP();
+    // CAN bus (TWAI), 250 kbps. WiFi AP remains active for portal / OTA.
+    if (MDL.CommMode == CommModeCan)
+    {
+        Serial.print("Starting TWAI CAN (TX GPIO ");
+        Serial.print(MDL.CanTxPin);
+        Serial.print(", RX GPIO ");
+        Serial.print(MDL.CanRxPin);
+        Serial.println(") ...");
 
-	// web server
-	Serial.println();
-	Serial.println("Starting Web Server");
+        twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(
+            (gpio_num_t)MDL.CanTxPin, (gpio_num_t)MDL.CanRxPin, TWAI_MODE_NORMAL);
+        twai_timing_config_t t = TWAI_TIMING_CONFIG_250KBITS();
+        twai_filter_config_t f = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
-	server.on("/", HandleRoot);
-	server.on("/wifi", HandleWifiPage);		// all WiFi settings — see PgWifi.ino
-	server.onNotFound(HandleRoot);
+        if (twai_driver_install(&g, &t, &f) == ESP_OK && twai_start() == ESP_OK)
+            Serial.println("TWAI CAN started at 250 kbps.");
+        else
+            Serial.println("TWAI CAN failed to start.");
+    }
 
-	server.on("/generate_204", []() {server.send(204, "text/plain", "");	});
-	server.on("/fwlink", []() { server.send(200, "text/plain", "OK"); });
-	server.on("/hotspot-detect.html", HTTP_GET, []() { server.send(200, "text/html", "<html><body>Portal</body></html>"); });
-	server.on("/ncsi.txt", HTTP_GET, []() { server.send(200, "text/plain", "Microsoft NCSI"); });
-	// Windows 10's probe — /ncsi.txt above is the Windows 7/8 one. Without this
-	// the poll falls through to HandleRoot, Windows gets a page of HTML where it
-	// expects this exact string, decides the hotspot is a captive portal and
-	// launches the browser. It also polls for as long as a PC sits on the
-	// hotspot, so answering here saves rebuilding the settings page every time.
-	server.on("/connecttest.txt", HTTP_GET, []() { server.send(200, "text/plain", "Microsoft Connect Test"); });
+    // Ethernet (W5500), unchanged from YieldFlo except BeltFlo UDP ports.
+    if (MDL.CommMode == CommModeEth)
+    {
+        Serial.println("Starting Ethernet ...");
+        uint8_t ip3 = 50 + MDL.ID;
+        IPAddress LocalIP(MDL.EthIP0, MDL.EthIP1, MDL.EthIP2, ip3);
+        static uint8_t LocalMac[] = { 0x0A, 0x0B, 0x59, 0x46, 0x0D, 0x00 };
+        LocalMac[5] = ip3;
 
-	// Register custom update page BEFORE ESP2SOTA so it takes priority (first registration wins)
-	server.on("/update", HTTP_GET, []() {
-		NotePortalRequest();		// real page load — hold off station retries
-		server.sendHeader("Connection", "close");
-		server.send(200, "text/html", GetPageUpdate());
-	});
+        Ethernet.init(W5500_SS);
+        IPAddress Gateway(MDL.EthIP0, MDL.EthIP1, MDL.EthIP2, 1);
+        IPAddress Mask(255, 255, 255, 0);
+        Ethernet.begin(LocalMac, LocalIP, Gateway, Gateway, Mask);
 
-	server.begin();
+        delay(1500);
+        EthChipFound = (Ethernet.hardwareStatus() != EthernetNoHardware);
+        if (EthChipFound)
+        {
+            if (Ethernet.linkStatus() == LinkON)
+                Serial.println("Ethernet connected.");
+            else
+                Serial.println("Ethernet cable not connected.");
 
-	MDNS.begin("yieldflo");
+            Serial.print("Ethernet IP: ");
+            Serial.println(Ethernet.localIP());
+            UDP_Ethernet.begin(ListeningPort);
+        }
+        else Serial.println("Ethernet hardware (W5500) not found.");
 
-	/* INITIALIZE ESP2SOTA LIBRARY */
-	ESP2SOTA.begin(&server);
+        Ethernet_DestinationIP = IPAddress(MDL.EthIP0, MDL.EthIP1, MDL.EthIP2, 255);
+    }
 
-	Serial.println("OTA started.");
+    StartWifiStation();
 
-	// CAN bus (TWAI) — only when configured; WiFi AP stays active for web portal regardless
-	if (MDL.CommMode == CommModeCan)
-	{
-		Serial.print("Starting TWAI CAN (TX GPIO ");
-		Serial.print(MDL.CanTxPin);
-		Serial.print(", RX GPIO ");
-		Serial.print(MDL.CanRxPin);
-		Serial.println(") ...");
-		twai_general_config_t g = TWAI_GENERAL_CONFIG_DEFAULT(
-			(gpio_num_t)MDL.CanTxPin, (gpio_num_t)MDL.CanRxPin, TWAI_MODE_NORMAL);
-		twai_timing_config_t  t = TWAI_TIMING_CONFIG_250KBITS();
-		twai_filter_config_t  f = TWAI_FILTER_CONFIG_ACCEPT_ALL();
-		if (twai_driver_install(&g, &t, &f) == ESP_OK && twai_start() == ESP_OK)
-			Serial.println("TWAI CAN started at 250kbps.");
-		else
-			Serial.println("TWAI CAN failed to start.");
-	}
+    // Do not backlog belt pulses that happened during startup against the first
+    // scale value. Integration starts from the current pulse total.
+    noInterrupts();
+    LastIntegratedPulseTotal = BeltPulseTotal;
+    interrupts();
 
-	// Ethernet (W5500) — only when configured; WiFi AP stays active for web portal regardless
-	if (MDL.CommMode == CommModeEth)
-	{
-		Serial.println("Starting Ethernet ...");
-		uint8_t ip3 = 50 + MDL.ID;
-		IPAddress LocalIP(MDL.EthIP0, MDL.EthIP1, MDL.EthIP2, ip3);
-		static uint8_t LocalMac[] = { 0x0A, 0x0B, 0x59, 0x46, 0x0D, 0x00 };
-		LocalMac[5] = ip3;
-
-		Ethernet.init(W5500_SS);
-		IPAddress Gateway(MDL.EthIP0, MDL.EthIP1, MDL.EthIP2, 1);
-		IPAddress Mask(255, 255, 255, 0);
-		Ethernet.begin(LocalMac, LocalIP, Gateway, Gateway, Mask);
-
-		delay(1500);
-		EthChipFound = (Ethernet.hardwareStatus() != EthernetNoHardware);
-		if (EthChipFound)
-		{
-			if (Ethernet.linkStatus() == LinkON)
-				Serial.println("Ethernet connected.");
-			else
-				Serial.println("Ethernet cable not connected.");
-			Serial.print("Ethernet IP: ");
-			Serial.println(Ethernet.localIP());
-			UDP_Ethernet.begin(ListeningPort);
-		}
-		else
-		{
-			Serial.println("Ethernet hardware (W5500) not found.");
-		}
-		Ethernet_DestinationIP = IPAddress(MDL.EthIP0, MDL.EthIP1, MDL.EthIP2, 255);
-	}
-
-	// wifi client mode — see Wifi.ino
-	StartWifiStation();
-
-	delay(1500);
-
-	Serial.println("");
-	Serial.println("Finished setup.");
-	Serial.println("");
+    Serial.println();
+    Serial.println("Finished setup.");
+    Serial.println();
 }
-
 
 void SaveData()
 {
-	EEPROM.put(0, (int16_t)StructVersion);
-	EEPROM.put(10, MDL);
-	EEPROM.commit();
-
-	delay(3000);
-
-	ESP.restart();
+    EEPROM.put(0, (int16_t)StructVersion);
+    EEPROM.put(10, MDL);
+    EEPROM.commit();
+    delay(250);
+    ESP.restart();
 }
 
 void LoadData()
 {
-	bool IsValid = false;
-	int16_t StoredStructVersion;
-	EEPROM.get(0, StoredStructVersion);
-	if (StoredStructVersion == StructVersion)
-	{
-		Serial.println("Loading stored settings.");
-		EEPROM.get(10, MDL);
-		IsValid = ValidData();
-	}
+    bool IsValid = false;
+    int16_t StoredStructVersion;
+    EEPROM.get(0, StoredStructVersion);
 
-	if (!IsValid)
-	{
-		Serial.println("Stored settings not valid.");
-		LoadDefaults();
-		SaveData();
-	}
+    if (StoredStructVersion == StructVersion)
+    {
+        Serial.println("Loading stored settings.");
+        EEPROM.get(10, MDL);
+        IsValid = ValidData();
+
+        // Preserve every existing communication setting. Only migrate the old
+        // stock hotspot name; a custom AP name is left exactly as the user set it.
+        if (IsValid && strcmp(MDL.APname, "YieldFlo_ESP32") == 0)
+        {
+            strncpy(MDL.APname, "BeltFlo_ESP32", ModStringLengths);
+            MDL.APname[ModStringLengths - 1] = 0;
+            EEPROM.put(10, MDL);
+            EEPROM.commit();
+            Serial.println("Migrated default hotspot name to BeltFlo_ESP32.");
+        }
+    }
+
+    if (!IsValid)
+    {
+        Serial.println("Stored settings not valid.");
+        LoadDefaults();
+        EEPROM.put(0, (int16_t)StructVersion);
+        EEPROM.put(10, MDL);
+        EEPROM.commit();
+        delay(100);
+    }
 }
 
-// valid pins for each processor
 uint8_t ValidPins0[] = { 0,2,4,5,13,14,15,16,17,18,19,21,22,23,25,26,27,32,33,34,35,36,39 };
 
 bool PinValid(uint8_t pin)
 {
-	for (int i = 0; i < sizeof(ValidPins0); i++)
-	{
-		if (pin == ValidPins0[i]) return true;
-	}
-	return false;
+    for (int i = 0; i < (int)sizeof(ValidPins0); i++)
+        if (pin == ValidPins0[i]) return true;
+    return false;
 }
 
 bool ValidData()
 {
-	// optional pins: NC allowed, otherwise must be in the valid list
-	if (MDL.RPMpin != NC && !PinValid(MDL.RPMpin)) return false;
-	if (MDL.CompPin != NC && !PinValid(MDL.CompPin)) return false;
-	if (MDL.MainPin != NC && !PinValid(MDL.MainPin)) return false;
-	if (MDL.AlertPin != NC && !PinValid(MDL.AlertPin)) return false;
-	if (MDL.AnalogPin != NC && !PinValid(MDL.AnalogPin)) return false;
-
-	// CAN pins are fixed by the PCB and never NC. A corrupt value here makes
-	// TWAI start on the wrong GPIO: the controller reads permanent dominant,
-	// never joins the bus, and hangs silently with ALL error counters at zero.
-	if (!PinValid(MDL.CanTxPin)) return false;
-	if (!PinValid(MDL.CanRxPin)) return false;
-
-	if (MDL.CommMode > CommModeEth) return false;
-
-	// 0 = none cached. A corrupt value would put the softAP on a channel the
-	// radio cannot use, so fail validation rather than start a broken hotspot.
-	if (MDL.StaChannelCache > 13) return false;
-
-	return true;
+    if (MDL.RPMpin != NC && !PinValid(MDL.RPMpin)) return false;
+    if (!PinValid(MDL.CanTxPin)) return false;
+    if (!PinValid(MDL.CanRxPin)) return false;
+    if (MDL.CommMode > CommModeEth) return false;
+    if (MDL.StaChannelCache > 13) return false;
+    return true;
 }
 
 void LoadDefaults()
 {
-	Serial.println("Loading default settings.");
+    Serial.println("Loading BeltFlo default settings.");
 
-	strncpy(MDL.APname, "YieldFlo_ESP32", ModStringLengths);
-	strncpy(MDL.APpassword, "", ModStringLengths);
-	MDL.WifiModeUseStation = false;
-	strncpy(MDL.SSID, "Tractor", ModStringLengths);
-	strncpy(MDL.Password, "111222333", ModStringLengths);
-	MDL.ADS1115Enabled = true;
-	MDL.RPMpin = 35;
-	MDL.CompPin = 32;
-	MDL.MainPin = 33;
-	MDL.UseCompSignal = false;	// safe side — see the note on the struct field
-	MDL.InvertSensor = false;
-	MDL.AlertPin = 16;
-	MDL.AnalogPin = NC;
-	MDL.CommMode = CommModeWifi;
-	MDL.CanTxPin = 14;
-	MDL.CanRxPin = 27;
-	MDL.EthIP0 = 192;
-	MDL.EthIP1 = 168;
-	MDL.EthIP2 = 1;
-	MDL.StaChannelCache = 0;
+    strncpy(MDL.APname, "BeltFlo_ESP32", ModStringLengths);
+    MDL.APname[ModStringLengths - 1] = 0;
+    strncpy(MDL.APpassword, "", ModStringLengths);
+    MDL.APpassword[ModStringLengths - 1] = 0;
+
+    MDL.WifiModeUseStation = false;
+    strncpy(MDL.SSID, "Tractor", ModStringLengths);
+    MDL.SSID[ModStringLengths - 1] = 0;
+    strncpy(MDL.Password, "111222333", ModStringLengths);
+    MDL.Password[ModStringLengths - 1] = 0;
+
+    // Legacy fields retained in EEPROM layout; unused by BeltFlo.
+    MDL.ADS1115Enabled = false;
+    MDL.RPMpin = 35;      // Belt proximity input
+    MDL.CompPin = 32;
+    MDL.MainPin = 33;
+    MDL.UseCompSignal = false;
+    MDL.InvertSensor = false;
+    MDL.AlertPin = 16;
+    MDL.AnalogPin = NC;
+
+    MDL.CommMode = CommModeWifi;
+    MDL.CanTxPin = 14;
+    MDL.CanRxPin = 27;
+    MDL.EthIP0 = 192;
+    MDL.EthIP1 = 168;
+    MDL.EthIP2 = 1;
+    MDL.StaChannelCache = 0;
 }

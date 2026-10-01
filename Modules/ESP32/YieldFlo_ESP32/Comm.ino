@@ -174,7 +174,7 @@ static byte BuildStatusFlags()
     byte flags = 0;
     if (ScaleOK)          flags |= 0x01; // ScaleOK
     if (BeltRunningNow()) flags |= 0x02; // BeltRunning
-    if (ScaleTared())       flags |= 0x04; // Tared / zero set
+    if (ScaleTared())       flags |= 0x04; // Tared / calibrated zero+span block
     if (ReceivingFromPC())flags |= 0x08; // settings heartbeat
     if (ScaleOverload)    flags |= 0x10; // converter near rail
     return flags;

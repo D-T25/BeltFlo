@@ -67,6 +67,19 @@ namespace BeltFlo.Classes
         /// <summary>True when the active profile has a real zero and span, not the seeded placeholder.</summary>
         public static bool ActiveScaleCalibrated => _activeConveyor?.IsCalibrated == true;
 
+        /// <summary>
+        /// One immediate verdict used by BOTH counter accounting and the GPS/map
+        /// pipeline. Keeping it here prevents a bad status packet being treated
+        /// differently for the fraction of a second before the next GPS tick.
+        /// </summary>
+        public static bool ScaleDataUsable =>
+            ModuleConnected
+            && ModuleReceiving
+            && LastScaleOk
+            && !LastOverload
+            && LastTared
+            && ActiveScaleCalibrated;
+
         // Flags
         public static bool IsShuttingDown { get; private set; }
         public static bool IsRestarting { get; private set; }
@@ -206,7 +219,8 @@ namespace BeltFlo.Classes
             // The threshold for credited mass is packet-level, not the smoothed
             // display flow. This counts the first real crop immediately and drops
             // empty-belt noise immediately when it falls below the configured rate.
-            if (dLb > 0 && Yield.CountCurrentDelta) Collector?.OnPoundsDelta(dLb);
+            if (dLb > 0 && Yield.CountCurrentDelta && ScaleDataUsable)
+                Collector?.OnPoundsDelta(dLb);
 
             // Alarm/tail behaviour is intentionally smoother than accounting.
             Collector?.CheckNoLoad(Yield?.IsFlowing ?? false);

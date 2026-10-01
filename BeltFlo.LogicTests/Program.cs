@@ -1,4 +1,5 @@
 using System;
+using System.Reflection;
 using BeltFlo.Classes;
 using BeltFlo.Communication;
 using BeltFlo.Database;
@@ -18,6 +19,7 @@ namespace BeltFlo.LogicTests
             Run("UDP PGN 40011 packet CRCs and layout", TestUdpPacket);
             Run("CAN settings frames reconstruct same block", TestCanFrames);
             Run("Conveyor calibration validity", TestCalibrationValidity);
+            Run("Scale-data safety gate rejects bad module states", TestScaleDataUsableGate);
             Run("Counter differencing gives pounds, flow and belt speed", TestCounterDifferencing);
             Run("Flow threshold rejects tiny empty-belt increments", TestFlowThreshold);
             Run("Counter wrap preserves delivered mass", TestCounterWrap);
@@ -145,6 +147,53 @@ namespace BeltFlo.LogicTests
             // Raw zero counts are allowed to be exactly zero.
             cfg.ZeroCounts = 0;
             True(cfg.IsCalibrated, "raw zero count value must not invalidate calibration");
+        }
+
+
+        private static void TestScaleDataUsableGate()
+        {
+            var activeField = typeof(Core).GetField("_activeConveyor",
+                BindingFlags.NonPublic | BindingFlags.Static);
+            if (activeField == null) throw new Exception("Could not access Core._activeConveyor for test");
+
+            var calibrated = CalibratedConfig();
+            activeField.SetValue(null, calibrated);
+
+            Core.ModuleConnected = true;
+            Core.LastReceivingFromPc = true;
+            Core.LastScaleOk = true;
+            Core.LastOverload = false;
+            Core.LastTared = true;
+
+            True(Core.ScaleDataUsable, "healthy calibrated two-way link should be usable");
+
+            Core.LastReceivingFromPc = false;
+            False(Core.ScaleDataUsable, "lost PC settings heartbeat must block data");
+            Core.LastReceivingFromPc = true;
+
+            Core.LastOverload = true;
+            False(Core.ScaleDataUsable, "overload must block data");
+            Core.LastOverload = false;
+
+            Core.LastScaleOk = false;
+            False(Core.ScaleDataUsable, "scale hardware fault must block data");
+            Core.LastScaleOk = true;
+
+            Core.LastTared = false;
+            False(Core.ScaleDataUsable, "module calibration/tare flag must block data");
+            Core.LastTared = true;
+
+            var uncalibrated = CalibratedConfig();
+            uncalibrated.SpanLbPerCount = 0;
+            activeField.SetValue(null, uncalibrated);
+            False(Core.ScaleDataUsable, "uncalibrated active profile must block data");
+
+            Core.ModuleConnected = false;
+            Core.LastReceivingFromPc = false;
+            Core.LastScaleOk = true;
+            Core.LastOverload = false;
+            Core.LastTared = false;
+            activeField.SetValue(null, null);
         }
 
         private static void TestCounterDifferencing()

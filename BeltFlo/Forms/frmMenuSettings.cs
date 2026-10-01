@@ -14,6 +14,9 @@ namespace BeltFlo.Forms
         private string _originalCommType;
         private string _originalCanDriver;
         private string _originalCanPort;
+        private bool _padOpen;
+        private double _truckFullWarningLb;
+        private const double KG_PER_LB = 0.45359237;
 
         private static readonly Color ActiveColour = Color.FromArgb(0, 80, 160);
         private static readonly Color InactiveColour = Color.FromArgb(60, 60, 60);
@@ -74,6 +77,8 @@ namespace BeltFlo.Forms
                 }
             }
 
+            lblTruckFullVal.BackColor = ctrl;
+            lblTruckFullVal.ForeColor = Color.White;
             btnSaveSettings.BackColor = Color.FromArgb(0, 110, 0);
             btnSaveSettings.ForeColor = Color.White;
             btnSettingsClose.BackColor = InactiveColour;
@@ -95,6 +100,9 @@ namespace BeltFlo.Forms
 
             // Resume from Pause when sections come on
             SetToggle(btnAutoResumeOn, btnAutoResumeOff, Properties.Settings.Default.AutoResumePause);
+
+            _truckFullWarningLb = Math.Max(0, Properties.Settings.Default.TruckFullWarningLb);
+            ShowTruckFull();
 
             // CAN driver
             cbCanDriver.SelectedIndex = cbCanDriver.FindStringExact(Properties.Settings.Default.CanDriver);
@@ -154,12 +162,41 @@ namespace BeltFlo.Forms
             inactive.BackColor = firstActive ? InactiveColour : ActiveColour;
         }
 
-        private void btnImperial_Click(object sender, EventArgs e) => SetToggle(btnImperial, btnMetric, true);
-        private void btnMetric_Click(object sender, EventArgs e) => SetToggle(btnImperial, btnMetric, false);
+        private void btnImperial_Click(object sender, EventArgs e) { SetToggle(btnImperial, btnMetric, true); ShowTruckFull(); }
+        private void btnMetric_Click(object sender, EventArgs e) { SetToggle(btnImperial, btnMetric, false); ShowTruckFull(); }
         private void btnResumeOn_Click(object sender, EventArgs e) => SetToggle(btnResumeOn, btnResumeOff, true);
         private void btnResumeOff_Click(object sender, EventArgs e) => SetToggle(btnResumeOn, btnResumeOff, false);
         private void btnAutoResumeOn_Click(object sender, EventArgs e) => SetToggle(btnAutoResumeOn, btnAutoResumeOff, true);
         private void btnAutoResumeOff_Click(object sender, EventArgs e) => SetToggle(btnAutoResumeOn, btnAutoResumeOff, false);
+
+        private bool EditingMetric => btnMetric.BackColor == ActiveColour;
+        private double LoadToDisplay(double lb) => EditingMetric ? lb * KG_PER_LB : lb;
+        private double LoadFromDisplay(double v) => EditingMetric ? v / KG_PER_LB : v;
+
+        private void ShowTruckFull()
+        {
+            lblTruckFullVal.Text = _truckFullWarningLb > 0
+                ? LoadToDisplay(_truckFullWarningLb).ToString("F0")
+                : "Off";
+            lblTruckFullUnit.Text = _truckFullWarningLb > 0 ? (EditingMetric ? "kg" : "lb") : "";
+        }
+
+        private void lblTruckFullVal_Click(object sender, EventArgs e)
+        {
+            if (_padOpen) return;
+            _padOpen = true;
+            try
+            {
+                double current = _truckFullWarningLb > 0 ? LoadToDisplay(_truckFullWarningLb) : 0;
+                using var pad = new frmNumpad(0, EditingMetric ? 100000 : 220000,
+                                              Math.Round(current), 0,
+                                              $"Truck Full Warning ({(EditingMetric ? "kg" : "lb")}, 0 = Off)");
+                if (pad.ShowDialog(this) != DialogResult.OK) return;
+                _truckFullWarningLb = pad.ReturnValue <= 0 ? 0 : LoadFromDisplay(pad.ReturnValue);
+                ShowTruckFull();
+            }
+            finally { _padOpen = false; }
+        }
 
         private void btnEthernet_Click(object sender, EventArgs e)
         {
@@ -204,6 +241,9 @@ namespace BeltFlo.Forms
 
             // Resume from Pause when sections come on
             Properties.Settings.Default.AutoResumePause = btnAutoResumeOn.BackColor == ActiveColour;
+
+            // 0 disables the warning. Stored in pounds regardless of display units.
+            Properties.Settings.Default.TruckFullWarningLb = _truckFullWarningLb;
 
             Properties.Settings.Default.Save();
             Core.RaiseColorChanged();

@@ -1,105 +1,137 @@
+// BeltFlo scale handling.
+//
+// This replaces YieldFlo's ADS1115 moisture code but keeps the filename so the
+// existing Arduino / Visual Micro project structure needs as little churn as
+// possible. The Load Cell 2 Click uses an NAU7802 at I2C address 0x2A.
 
-// Writes the ADS1115 config register to start a conversion on the given
-// channel. Retries a transient I2C NACK before giving up — a lost write must
-// not be assumed to have succeeded, or the local ADSstate desyncs from the
-// ADC's actual channel and moisture/temperature silently swap.
-static bool WriteADSConfig(byte hi, byte lo)
+void ResetScaleFilter()
 {
-	for (uint8_t attempt = 0; attempt < 3; attempt++)
-	{
-		Wire.beginTransmission(ADS1115_Address);
-		Wire.write(0x01);
-		Wire.write(hi);
-		Wire.write(lo);
-		if (Wire.endTransmission() == 0) return true;
-	}
-	return false;
+    ScaleFilterSum = 0;
+    ScaleFilterIndex = 0;
+    ScaleFilterCount = 0;
+    for (uint8_t i = 0; i < ScaleFilterSize; i++) ScaleFilter[i] = 0;
+    HaveIntegrationWeight = false;
 }
 
-void ReadAnalog()
+bool StartScaleHardware(bool announce)
 {
-	// ADS1115 channel assignments (Moisture1 daughter board):
-	//   AIN0-AIN1  differential  moisture (OEM sensor MoistureA - MoistureB)
-	//   AIN2       single-ended  moisture temperature
-	//
-	// Config register bit fields (MSB):
-	//   Bit  15      OS   0=no effect, 1=start single conversion
-	//   Bits 14:12   MUX  000=AIN0-AIN1 diff, 110=AIN2 single
-	//   Bits 11:9    PGA  001=4.096V full scale
-	//   Bit  8       MODE 1=single shot
-	// Config register bit fields (LSB):
-	//   Bits 7:5     DR   001=16 SPS
-	//   Bits 1:0     QUE  00=assert after 1 conversion (enables ALERT/RDY)
-	//
-	// Conversion-ready interrupt (MDL.AlertPin) sets ADSconversionReady.
-	// ADSstate tracks which channel result is pending.
+    if (announce) Serial.print("Starting NAU7802 scale ... ");
 
-	static uint8_t ADSstate = 0;	// 0 = moisture result pending, 1 = temp result pending
+    // SparkFun begin() performs reset, power-up, 3.3 V LDO, gain 128,
+    // 80 samples/s and AFE calibration. That is exactly what BeltFlo needs.
+    bool ok = BeltScale.begin(Wire, true);
+    ScaleFound = ok;
+    ScaleOK = false;
+    LastScaleReconnectMs = millis();
 
-	if (ADSfound)
-	{
-		if (ADSconversionReady)
-		{
-			ADSconversionReady = false;
-
-			// Read result from conversion register
-			Wire.beginTransmission(ADS1115_Address);
-			Wire.write(0x00);	// Conversion register
-			Wire.endTransmission();
-
-			if (Wire.requestFrom(ADS1115_Address, 2) == 2)
-			{
-				uint8_t hiByte = Wire.read();
-				uint8_t loByte = Wire.read();
-				int16_t raw = (int16_t)((uint16_t)hiByte << 8 | loByte);
-				LastADSReadMs = millis();
-
-				if (ADSstate == 0)
-				{
-					// Moisture result (AIN0-AIN1 differential)
-					if (raw < 0) raw = 0;
-					MoistureReading = raw;
-
-					// Request temperature conversion (AIN2 single-ended). Only
-					// advance ADSstate if the switch actually took — otherwise
-					// the ADC is still on the moisture channel and flipping
-					// our state here would label its next (moisture) result
-					// as temperature.
-					// OS=1, MUX=110 (AIN2 vs GND), PGA=001, MODE=1 / DR=001 (16 SPS), COMP_QUE=00
-					if (WriteADSConfig(0b11100011, 0b00100000))	ADSstate = 1;
-				}
-				else
-				{
-					// Temperature result (AIN2 single-ended)
-					TemperatureReading = raw;
-
-					// Request moisture conversion (AIN0-AIN1 differential).
-					// Only advance ADSstate if the switch actually took (see
-					// note above).
-					// OS=1, MUX=000 (AIN0-AIN1 diff), PGA=001, MODE=1 / DR=001 (16 SPS), COMP_QUE=00
-					if (WriteADSConfig(0b10000011, 0b00100000))	ADSstate = 0;
-				}
-			}
-		}
-	}
-	else
-	{
-		// Fallback: ESP32 native ADC
-		if (MDL.AnalogPin < NC) MoistureReading = (int16_t)analogRead(MDL.AnalogPin);
-	}
+    if (ok)
+    {
+        ResetScaleFilter();
+        LastScaleReadMs = 0;
+        if (announce) Serial.println("OK (80 SPS, gain 128).");
+    }
+    else
+    {
+        if (announce) Serial.println("not found at I2C 0x2A.");
+    }
+    return ok;
 }
 
-// ADS1115 is only "OK" if it was actually found AND has produced a
-// conversion recently — a dropped I2C connection stops ADSconversionReady
-// from firing without ever clearing ADSfound, which would otherwise report
-// stale/frozen moisture+temperature as good indefinitely.
-const uint32_t ADS_STALE_MS = 1000;
-bool ADSFresh()
+void ReadScale()
 {
-	return ADSfound && (millis() - LastADSReadMs) < ADS_STALE_MS;
+    static uint32_t lastPollMs = 0;
+    uint32_t now = millis();
+
+    // If the scale is missing, probe at a slow rate so WiFi/portal operation is
+    // still smooth. begin() only does the expensive calibration after the chip
+    // has acknowledged on I2C.
+    if (!ScaleFound)
+    {
+        ScaleOK = false;
+        DiscardPendingBeltTravel();
+        if (now - LastScaleReconnectMs >= ScaleReconnectMs)
+        {
+            LastScaleReconnectMs = now;
+            if (BeltScale.isConnected())
+            {
+                Serial.println("NAU7802 detected again; reinitializing.");
+                StartScaleHardware(false);
+            }
+        }
+        return;
+    }
+
+    // 5 ms polling is fast enough to catch the NAU7802's 80 SPS data-ready bit
+    // without hammering I2C on every pass through loop().
+    if (now - lastPollMs < 5) return;
+    lastPollMs = now;
+
+    if (BeltScale.available())
+    {
+        int32_t raw = BeltScale.getReading();
+        LastScaleReadMs = now;
+
+        if (ScaleFilterCount < ScaleFilterSize)
+        {
+            ScaleFilter[ScaleFilterIndex] = raw;
+            ScaleFilterSum += raw;
+            ScaleFilterCount++;
+            ScaleFilterIndex = (ScaleFilterIndex + 1) % ScaleFilterSize;
+        }
+        else
+        {
+            ScaleFilterSum -= ScaleFilter[ScaleFilterIndex];
+            ScaleFilter[ScaleFilterIndex] = raw;
+            ScaleFilterSum += raw;
+            ScaleFilterIndex = (ScaleFilterIndex + 1) % ScaleFilterSize;
+        }
+
+        if (ScaleFilterCount > 0)
+            ScaleRaw = (int32_t)(ScaleFilterSum / ScaleFilterCount);
+        else
+            ScaleRaw = raw;
+
+        ScaleOverload = (llabs((long long)ScaleRaw) >= ScaleOverloadCounts);
+
+        if (ScaleCalibrated())
+        {
+            ScaleLb = ((float)ScaleRaw - (float)Conveyor.ZeroCounts) * Conveyor.SpanLbPerCount;
+            if (!isfinite(ScaleLb)) ScaleLb = 0.0f;
+        }
+        else
+        {
+            ScaleLb = 0.0f;
+        }
+
+        ScaleOK = true;
+        UpdateBeltIntegration(ScaleLb);
+        return;
+    }
+
+    // A cable unplug can leave the object "found" but produce no conversions.
+    // After a stale interval, verify the I2C device is still present. If not,
+    // drop to the slow reconnect path above. If it still ACKs but conversions
+    // stopped, force a full re-init after two seconds.
+    if (LastScaleReadMs == 0 || now - LastScaleReadMs > ScaleStaleMs)
+    {
+        ScaleOK = false;
+        DiscardPendingBeltTravel();
+    }
+
+    if (LastScaleReadMs != 0 && now - LastScaleReadMs > 2000
+        && now - LastScaleReconnectMs >= ScaleReconnectMs)
+    {
+        LastScaleReconnectMs = now;
+        if (!BeltScale.isConnected())
+        {
+            Serial.println("NAU7802 connection lost.");
+            ScaleFound = false;
+            ResetScaleFilter();
+        }
+        else
+        {
+            Serial.println("NAU7802 stale; reinitializing.");
+            StartScaleHardware(false);
+        }
+    }
 }
-
-
-
-
-

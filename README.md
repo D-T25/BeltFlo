@@ -1,135 +1,79 @@
-# BeltFlo ESP32 firmware — first conveyor conversion
+# BeltFlo
 
-This is the first BeltFlo conversion of `Modules/ESP32/YieldFlo_ESP32`.
-It deliberately keeps the proven YieldFlo ESP32 networking, captive portal,
-EEPROM, W5500 Ethernet, TWAI CAN and ESP2SOTA OTA structure, and replaces the
-grain-specific sensing with a conveyor scale and belt-distance input.
+> **Work in progress — not ready for field use.** The PC app runs and has been tested against simulators, but key setup screens are missing, the module firmware has not been converted from YieldFlo, and the manual still describes YieldFlo. See [Status](#status).
 
-## What changed
+BeltFlo is a yield monitor for root-crop harvesters — potatoes, sugar beets, carrots, onions — that works alongside [AgOpenGPS](https://github.com/AgOpenGPS-Official/AgOpenGPS). It weighs the crop on a conveyor with load cells, maps yield across the field, and keeps a weight for every truck load so certified ticket weights can correct the map.
 
-- NAU7802 / Load Cell 2 Click replaces the ADS1115 moisture board.
-- The old RPM input on GPIO 35 is reused as the belt proximity input.
-- The existing EEPROM layout/version is retained, so current WiFi/Ethernet/CAN settings survive the firmware change.
-- Optical grain-flow code is removed from the measurement path.
-- BeltFlo PC settings PGN **40011** are received over UDP or CAN.
-- Conveyor data PGN **40010** is sent at 5 Hz over UDP.
-- BeltFlo CAN frames `0x18FF02F8` and `0x18FF03F8` are sent at 5 Hz.
-- The firmware integrates conveyor mass as:
+It is a fork of [YieldFlo](https://github.com/SK21/YieldFlo) (Development branch, September 2026), the grain yield monitor. The GPS, CAN, field, map and job code comes from YieldFlo; the grain sensing and calibration were removed.
 
-  `delivered_lb += section_lb / section_length_in * belt_travel_in`
+## How it works
 
-- The module sets the BeltFlo status bits for Scale OK, Belt Running,
-  calibrated/tared, PC-settings heartbeat and converter overload.
-- The web main page now shows live scale, belt, settings and communication status.
+- **Module** — the YF1 board with its ESP32, a Load Cell 2 Click (NAU7802) reading two load cells under a weighed section of the conveyor, and a proximity sensor on the belt drive. The module multiplies the weight on the section by belt travel and streams cumulative pounds and belt pulses to the PC over WiFi/Ethernet UDP or CAN.
+- **AgOpenGPS** supplies position, speed and section on/off state over UDP.
+- **BeltFlo (PC app)** pairs the weight with where the crop was dug (allowing for the time it takes to reach the scale), subtracts overlapping ground, stores every point in a local SQLite database, and tracks truck loads. It sends the module its calibration and geometry every 2 s; the module confirms it is hearing them, so the app can show the link is working both ways.
 
-## Hardware / pins
+Everything is stored in pounds and pounds per acre, and shown as cwt/ac or tons/ac, or t/ha in metric.
 
-| Signal | GPIO | Notes |
-|---|---:|---|
-| NAU7802 SDA | 21 | ESP32/YF1 I2C SDA |
-| NAU7802 SCL | 22 | ESP32/YF1 I2C SCL |
-| Belt proximity pulse | 35 | Reuses YieldFlo RPM input; input-only pin, YF1 conditioning expected |
-| CAN TX | 14 | To MCP2562 TXD |
-| CAN RX | 27 | From MCP2562 RXD |
-| W5500 SS | 5 | Ethernet chip select |
-| W5500 SCK/MISO/MOSI | 18/19/23 | VSPI defaults |
+## Status
 
-The two conveyor load cells should be electrically combined into the single
-weighing channel presented to the NAU7802, so the module sees one raw scale
-value for the whole weighed section.
+**Working in the PC app** (tested with the AgOpenGPS simulator and the module simulator):
 
-## Required Arduino libraries
+- Conveyor data from the module over UDP and CAN, with scale, zero, overload and dead-belt-sensor checks on the status bar
+- Settings sent to the module, and a two-way link check on the Module status light
+- Jobs, truck loads (▶ start, ⏹ finish), and map points tagged with their load
+- ⏸ Pause — stops all counting, for cleaning the belt or clearing a jam — with an optional auto-resume when sections come on, or an alarm if it is off
+- Weight below an empty-belt threshold is not counted
+- Overlap compensation, so a short last pass needs no row adjustment
+- Calibration revisions recorded on every point and load, so a later span change can rescale earlier data
 
-Keep the existing YieldFlo dependencies and add:
+**Not built yet:**
 
-- **SparkFun Qwiic Scale NAU7802 Arduino Library**
-  - Header: `SparkFun_Qwiic_Scale_NAU7802_Arduino_Library.h`
-  - `begin()` configures the NAU7802 for gain 128 and 80 samples/second.
+- Harvester profile with rows, row spacing and scale location (replacing YieldFlo's headers), and rows harvested per job for windrowed crop
+- Conveyor Setup screen (belt travel per pulse, weighed section length, delay, thresholds)
+- Scale Calibration screen (zero, known weight)
+- Loads screen — certified ticket weights and load or whole-job correction
+- "No load open" alarm, truck-full alarm, main screen redesign
+- **Hardware validation of the ESP32 module firmware.** The first BeltFlo conversion now builds for ESP32 core 3.3.7 and implements NAU7802 weighing, belt pulses, PGN 40010/40011 UDP, and BeltFlo CAN frames. It still needs bench and field testing on the YF1/NAU7802 hardware.
+- **Documentation.** The user manual still describes YieldFlo, and there is no diagnostic log guide yet.
+- Translations for the new BeltFlo text (the other seven languages fall back to English)
 
-Existing requirements still include ESP32 Arduino core, `Ethernet_Generic`, and
-the bundled `src/ESP2SOTA_RC` code.
+## Repository layout
 
-## BeltFlo UDP protocol
-
-### Module -> PC
-
-Port **30300**, PGN **40010**, 19 bytes:
-
-| Bytes | Field |
+| Folder | Contents |
 |---|---|
-| 0-1 | PGN 40010 little-endian |
-| 2 | flags: bit0 ScaleOK, bit1 BeltRunning, bit2 Tared/Calibrated, bit3 ReceivingFromPC, bit4 Overload |
-| 3-6 | cumulative pounds x10, uint32 LE |
-| 7-10 | cumulative belt pulses, uint32 LE |
-| 11-12 | live section pounds x10, int16 LE |
-| 13-16 | filtered raw NAU7802 counts, int32 LE |
-| 17 | reserved |
-| 18 | byte-sum CRC8 |
+| [`BeltFlo/`](BeltFlo) | The Windows Forms PC app (.NET Framework 4.8) |
+| [`BeltFloApp/`](BeltFloApp) | Runnable build of the app (exe and resources) |
+| [`ModuleSimulator/`](ModuleSimulator) | Conveyor module simulator — load and belt-speed sliders, fault switches, receives the app's settings |
+| [`ModuleSimulatorApp/`](ModuleSimulatorApp) | Runnable build of the simulator |
+| [`Modules/ESP32`](Modules/ESP32) | ESP32 module firmware for the YF1 board — first BeltFlo conveyor conversion using NAU7802 load-cell weighing and a belt proximity input, while retaining the YieldFlo WiFi, CAN, Ethernet, web portal and OTA foundation |
+| [`PCBs/YF1`](PCBs/YF1) | KiCad design for the YF1 module board, shared with YieldFlo |
 
-### PC -> module
+The module packet layouts are documented in the code: `BeltFlo/Communication/UDPcomm.cs` (module → PC, PGN 40010) and `BeltFlo/Communication/ModuleSettings.cs` (PC → module, PGN 40011).
 
-Module listens on port **30400**, PGN **40011**, 18 bytes. The 13-byte settings
-block is exactly the layout in `BeltFlo/Communication/ModuleSettings.cs`:
+## Trying it
 
-| Block bytes | Field |
-|---|---|
-| 0-3 | zero counts, int32 |
-| 4-7 | span lb/count, float32 |
-| 8-9 | weighed section length x10 inches, uint16 |
-| 10-11 | belt travel x1000 inches/pulse, uint16 |
-| 12 | belt-stop timeout x10 seconds, uint8 |
+For development and testing only.
 
-The block is protected by CRC-16/CCITT-FALSE and the whole UDP packet by the
-same byte-sum CRC8 used elsewhere in BeltFlo.
+1. Build `BeltFlo.sln` (Visual Studio, .NET Framework 4.8), or run `BeltFloApp/BeltFlo.exe`.
+2. Run `ModuleSimulatorApp/ModuleSimulator.exe`. The module link uses UDP ports 30300 (module → PC) and 30400 (PC → module).
+3. Run AgOpenGPS in simulator mode with a field open.
+4. In BeltFlo, create a job on the Jobs screen, tick **Harvesting** in the simulator, turn sections on in AgOpenGPS, and press ▶ to open a load.
 
-## BeltFlo CAN protocol
+Diagnostic CSVs and logs are written to `Documents\BeltFlo`.
 
-At 250 kbps, extended IDs:
+### Rebuilding the manual
 
-- `0x18FF02F8`: cumulative pounds x10 + cumulative pulses
-- `0x18FF03F8`: status flags + scale pounds x10 + raw counts
-- `0x18FF04F9`: PC settings block bytes 0-7
-- `0x18FF05F9`: PC settings block bytes 8-12 + CRC-16
+`BeltFlo/Help/` holds the manual as `.md`, `.html` and `.pdf`. All three ship, so all three have to be kept in step — the `.md` and `.html` are edited by hand, and the `.pdf` is printed from the `.html` by headless Edge:
 
-## Applying this patch
+```
+"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" ^
+  --headless=new --disable-gpu --no-pdf-header-footer ^
+  --print-to-pdf="BeltFlo User Manual.pdf" ^
+  "file:///F:/path/to/BeltFlo/Help/BeltFlo User Manual.html"
+```
 
-Replace these files inside the current `Modules/ESP32/YieldFlo_ESP32` folder:
+The build copies `Help/**` into `BeltFloApp/Help/`; that copy is output, not a second source to edit.
 
-- `YieldFlo_ESP32.ino`
-- `Begin.ino`
-- `Analog.ino`
-- `Flow.ino`
-- `Comm.ino`
-- `PgMain.ino`
-- `GUI.ino`
-- `README.md`
+## License
 
-Keep the current `Wifi.ino`, `PgWifi.ino`, `PgUpdate.ino` and
-`src/ESP2SOTA_RC/` files. They are intentionally reused unchanged for now.
-
-The folder/main-sketch name is left as `YieldFlo_ESP32` in this first patch so
-Arduino and the existing Visual Micro project continue to open without a rename.
-The running firmware identifies itself as **BeltFlo_ESP32**. Existing communication settings are retained; an untouched default `YieldFlo_ESP32` hotspot name is migrated to `BeltFlo_ESP32`, while custom hotspot names are preserved.
-
-## First bench test
-
-1. Install the SparkFun NAU7802 library.
-2. Apply the replacement files above and compile/upload.
-3. Connect to the BeltFlo hotspot and open the module page.
-4. Confirm `Scale = OK` and that raw counts change when weight is applied.
-5. Run BeltFlo PC app and confirm `PC settings = Receiving`.
-6. Rotate the belt sensor target by hand and confirm `Belt pulses` increments.
-7. Enter/activate calibration and conveyor geometry in the PC app once those
-   setup screens are available, or inject PGN 40011 from the simulator/test tool.
-8. Put a known weight on the section, move the belt a known distance, and verify
-   cumulative pounds follows `weight / section length * belt travel`.
-
-## Known first-pass limits
-
-- Conveyor calibration/setup screens in the PC app are still listed as not built
-  in the repository README, so end-to-end field calibration is not yet complete.
-- Belt pulse GPIO remains fixed at the old RPM input (GPIO 35) in the portal.
-- The WiFi and firmware-update sub-pages still come from the current YieldFlo
-  files; their page titles may still say YieldFlo until the cosmetic rename pass.
-- This code has been protocol-checked against the current BeltFlo source, but it
-  has not yet been compiled on the target Arduino toolchain or tested on hardware.
+GPL-3.0 — see [`LICENSE`](LICENSE).

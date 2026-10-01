@@ -94,34 +94,25 @@ bool ReceivingFromPC()
     return Conveyor.EverReceived && (millis() - Conveyor.LastReceivedMs) < SettingsHeartbeatMs;
 }
 
-bool ScaleTared()
-{
-    // BeltFlo's current settings packet has no explicit "zero has been set"
-    // flag. The database default is zero counts = 0, while a real NAU7802
-    // empty-belt reading is normally far from exactly zero, so this is a
-    // practical first-pass distinction until the calibration screen adds an
-    // explicit validity bit to the protocol.
-    return Conveyor.EverReceived && Conveyor.ZeroCounts != 0;
-}
-
 bool ScaleSpanCalibrated()
 {
     if (!Conveyor.EverReceived || !isfinite(Conveyor.SpanLbPerCount)) return false;
+    return fabsf(Conveyor.SpanLbPerCount) > 0.000000001f;
+}
 
-    float a = fabsf(Conveyor.SpanLbPerCount);
-
-    // 0 means unset. BeltFlo's current ConveyorConfig default is 1 lb/count,
-    // which is also an "unset" placeholder and is not a plausible calibrated
-    // 24-bit load-cell span, so reject that exact default too.
-    if (a <= 0.000000001f) return false;
-    if (fabsf(a - 1.0f) <= 0.000001f) return false;
-    return true;
+bool ScaleTared()
+{
+    // PGN 40011 has no separate "zero valid" bit, and a legitimate NAU7802
+    // empty-belt reading can be exactly (or very near) zero counts. The PC now
+    // sends span=0 until Zero Scale AND Known Weight have both been completed,
+    // so a valid non-zero span is the protocol-safe indication that the zero
+    // carried in the same settings block is also intentional.
+    return ScaleSpanCalibrated();
 }
 
 bool ScaleCalibrated()
 {
-    return ScaleTared()
-        && ScaleSpanCalibrated()
+    return ScaleSpanCalibrated()
         && Conveyor.SectionLenIn > 0.0f
         && Conveyor.InchesPerPulse > 0.0f;
 }

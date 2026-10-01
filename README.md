@@ -1,6 +1,6 @@
 # BeltFlo
 
-> **Work in progress — not ready for field use.** The PC app runs and has been tested against simulators, and the first ESP32 conveyor-firmware conversion now compiles, but key setup screens and hardware validation are still missing and the manual still describes YieldFlo. See [Status](#status).
+> **Work in progress — not ready for field use.** The PC app now includes the conveyor/profile/calibration/load workflows and builds in CI, and the first ESP32 conveyor firmware compiles. Physical YF1/NAU7802 validation and documentation are still required before field use. See [Status](#status).
 
 BeltFlo is a yield monitor for root-crop harvesters — potatoes, sugar beets, carrots, onions — that works alongside [AgOpenGPS](https://github.com/AgOpenGPS-Official/AgOpenGPS). It weighs the crop on a conveyor with load cells, maps yield across the field, and keeps a weight for every truck load so certified ticket weights can correct the map.
 
@@ -25,15 +25,16 @@ Everything is stored in pounds and pounds per acre, and shown as cwt/ac or tons/
 - Weight below an empty-belt threshold is not counted
 - Overlap compensation, so a short last pass needs no row adjustment
 - Calibration revisions recorded on every point and load, so a later span change can rescale earlier data
+- Harvester profiles with rows, row spacing, digging offset and truck/tank scale location
+- Conveyor Setup for belt travel per pulse, measured belt turn, weighed-section length, delay and thresholds
+- Scale Calibration with full-belt empty zero and stopped known-weight span calibration
+- Loads screen with certified tickets, per-load correction, whole-job tank correction and optional calibration update
+- "No load open" alarm, pause/sections alarm and configurable truck-full warning
+- Root-crop run screen showing yield, current truck load, flow, belt speed and module/scale status
 
-**Not built yet:**
+**Still to do before field use:**
 
-- Harvester profile with rows, row spacing and scale location (replacing YieldFlo's headers), and rows harvested per job for windrowed crop
-- Conveyor Setup screen (belt travel per pulse, weighed section length, delay, thresholds)
-- Scale Calibration screen (zero, known weight)
-- Loads screen — certified ticket weights and load or whole-job correction
-- "No load open" alarm, truck-full alarm, main screen redesign
-- **Hardware validation of the ESP32 module firmware.** The first BeltFlo conversion now builds for ESP32 core 3.3.7 and implements NAU7802 weighing, belt pulses, PGN 40010/40011 UDP, and BeltFlo CAN frames. It still needs bench and field testing on the YF1/NAU7802 hardware.
+- **Hardware validation of the ESP32 module firmware.** The first BeltFlo conversion builds for ESP32 core 3.3.7 and implements NAU7802 weighing, belt pulses, PGN 40010/40011 UDP, and BeltFlo CAN frames. It still needs bench and field testing on the YF1/NAU7802 hardware.
 - **Documentation.** The user manual still describes YieldFlo, and there is no diagnostic log guide yet.
 - Translations for the new BeltFlo text (the other seven languages fall back to English)
 

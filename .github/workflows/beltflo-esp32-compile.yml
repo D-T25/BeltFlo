@@ -2,8 +2,13 @@ name: BeltFlo ESP32 Compile
 
 on:
   push:
-    branches:
-      - beltflo-esp32-conversion
+    paths:
+      - "Modules/ESP32/YieldFlo_ESP32/**"
+      - ".github/workflows/beltflo-esp32-compile.yml"
+  pull_request:
+    paths:
+      - "Modules/ESP32/YieldFlo_ESP32/**"
+      - ".github/workflows/beltflo-esp32-compile.yml"
   workflow_dispatch:
 
 jobs:
@@ -31,5 +36,6 @@ jobs:
       - name: Compile BeltFlo ESP32
         run: |
           arduino-cli compile \
+            --warnings all \
             --fqbn esp32:esp32:esp32doit-devkit-v1 \
             Modules/ESP32/YieldFlo_ESP32

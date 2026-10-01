@@ -202,6 +202,10 @@ namespace BeltFlo.Forms
                 message = Lang.lgPausedSectionsOn;
             else if (col != null && col.NoLoadAlarm && Core.ModuleConnected)
                 message = Lang.lgNoLoadOpen;
+            else if (col != null && col.ActiveLoadId > 0
+                     && Properties.Settings.Default.TruckFullWarningLb > 0
+                     && col.CurrentLoadLb >= Properties.Settings.Default.TruckFullWarningLb)
+                message = $"Load full — {Props.DisplayLoad(col.CurrentLoadLb):F0} {Props.LoadUnit}";
 
             if (message == null)
             {

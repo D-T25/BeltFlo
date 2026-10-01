@@ -14,7 +14,8 @@ void IRAM_ATTR onRPMedge()
     if (now - LastBeltPulseUs < BeltDebounceUs) return;
 
     LastBeltPulseUs = now;
-    BeltPulseTotal++;
+    uint32_t total = BeltPulseTotal;
+    BeltPulseTotal = total + 1;
 }
 
 void DiscardPendingBeltTravel()

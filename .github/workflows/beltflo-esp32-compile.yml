@@ -1,0 +1,35 @@
+name: BeltFlo ESP32 Compile
+
+on:
+  push:
+    branches:
+      - beltflo-esp32-conversion
+  workflow_dispatch:
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Arduino CLI
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core
+        run: |
+          arduino-cli config init
+          arduino-cli config add board_manager.additional_urls https://espressif.github.io/arduino-esp32/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32@3.3.7
+
+      - name: Install libraries
+        run: |
+          arduino-cli lib update-index
+          arduino-cli lib install "Ethernet_Generic"
+          arduino-cli lib install "SparkFun Qwiic Scale NAU7802 Arduino Library"
+
+      - name: Compile BeltFlo ESP32
+        run: |
+          arduino-cli compile \
+            --fqbn esp32:esp32:esp32doit-devkit-v1 \
+            Modules/ESP32/YieldFlo_ESP32

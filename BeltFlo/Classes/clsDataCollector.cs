@@ -825,12 +825,23 @@ namespace BeltFlo.Classes
         }
 
         /// <summary>
-        /// Whether the current flow reading can be trusted: the module is talking
-        /// and it reports its scale as good.
+        /// Whether the current flow reading can be trusted for mapping and totals.
+        /// Every part matters:
+        ///   - packets are arriving,
+        ///   - settings are reaching the module (otherwise it may hold another
+        ///     profile's zero/span/geometry),
+        ///   - the converter is healthy and not overloaded,
+        ///   - the module confirms a zero,
+        ///   - the active app profile has a real known-weight span.
         /// </summary>
         private bool ScaleUsable()
         {
-            return Core.ModuleConnected && Core.LastScaleOk;
+            return Core.ModuleConnected
+                && Core.ModuleReceiving
+                && Core.LastScaleOk
+                && !Core.LastOverload
+                && Core.LastTared
+                && Core.ActiveScaleCalibrated;
         }
 
         /// <summary>

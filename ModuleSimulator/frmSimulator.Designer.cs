@@ -113,24 +113,24 @@ namespace ModuleSimulator
             this.chkScaleFault.AutoSize = true;
 
             this.chkOverload.Text     = "Scale overload flag — Overload = 1";
-            this.chkOverload.Location = new System.Drawing.Point(10, 497);
+            this.chkOverload.Location = new System.Drawing.Point(10, 377);
             this.chkOverload.AutoSize = true;
 
             this.chkBeltStopped.Text     = "Belt stopped — pulses frozen";
-            this.chkBeltStopped.Location = new System.Drawing.Point(10, 497);
+            this.chkBeltStopped.Location = new System.Drawing.Point(10, 401);
             this.chkBeltStopped.AutoSize = true;
 
             this.chkBeltSensorDead.Text     = "Belt sensor dead — belt runs, no pulses";
-            this.chkBeltSensorDead.Location = new System.Drawing.Point(10, 497);
+            this.chkBeltSensorDead.Location = new System.Drawing.Point(10, 425);
             this.chkBeltSensorDead.AutoSize = true;
 
             this.chkNotZeroed.Text     = "Not zeroed — Tared = 0";
-            this.chkNotZeroed.Location = new System.Drawing.Point(10, 497);
+            this.chkNotZeroed.Location = new System.Drawing.Point(10, 449);
             this.chkNotZeroed.AutoSize = true;
 
             // Old firmware: ignores the settings message, so its checksum never matches
             this.chkIgnoreSettings.Text     = "Ignore settings — old firmware";
-            this.chkIgnoreSettings.Location = new System.Drawing.Point(10, 497);
+            this.chkIgnoreSettings.Location = new System.Drawing.Point(10, 473);
             this.chkIgnoreSettings.AutoSize = true;
 
             // Weigh with the app's zero and span, for testing Scale Calibration
@@ -151,7 +151,7 @@ namespace ModuleSimulator
 
             this.lblPulses.Text     = "Pulses: 0";
             this.lblPulses.Font     = new System.Drawing.Font("Courier New", 11F);
-            this.lblPulses.Location = new System.Drawing.Point(10, 599);
+            this.lblPulses.Location = new System.Drawing.Point(10, 575);
             this.lblPulses.AutoSize = true;
 
             this.lblSettings.Text     = "Settings: none received";

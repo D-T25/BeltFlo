@@ -19,7 +19,7 @@ grain-specific sensing with a conveyor scale and belt-distance input.
   `delivered_lb += section_lb / section_length_in * belt_travel_in`
 
 - The module sets the BeltFlo status bits for Scale OK, Belt Running,
-  zero/tare status, PC-settings heartbeat and converter overload.
+  calibration/tare status, PC-settings heartbeat and converter overload.
 - Pound integration is disabled until a real zero and span have both been received.
   Uncalibrated profiles send span = 0 in PGN 40011, so the module cannot accidentally total weight before calibration.
 - The web main page now shows live scale, belt, settings and communication status.

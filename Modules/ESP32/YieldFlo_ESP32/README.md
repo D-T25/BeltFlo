@@ -20,8 +20,8 @@ grain-specific sensing with a conveyor scale and belt-distance input.
 
 - The module sets the BeltFlo status bits for Scale OK, Belt Running,
   zero/tare status, PC-settings heartbeat and converter overload.
-- Pound integration is disabled until a real zero and span have both been received;
-  the current PC default span of 1 lb/count is treated as an uncalibrated placeholder.
+- Pound integration is disabled until a real zero and span have both been received.
+  Uncalibrated profiles send span = 0 in PGN 40011, so the module cannot accidentally total weight before calibration.
 - The web main page now shows live scale, belt, settings and communication status.
 
 ## Hardware / pins
@@ -121,15 +121,13 @@ The running firmware identifies itself as **BeltFlo_ESP32**. Existing communicat
 4. Confirm `Scale = OK` and that raw counts change when weight is applied.
 5. Run BeltFlo PC app and confirm `PC settings = Receiving`.
 6. Rotate the belt sensor target by hand and confirm `Belt pulses` increments.
-7. Enter/activate calibration and conveyor geometry in the PC app once those
-   setup screens are available, or inject PGN 40011 from the simulator/test tool.
-8. Put a known weight on the section, move the belt a known distance, and verify
+7. In BeltFlo, open Conveyor Setup and enter/measure belt travel and weighed-section length.
+8. Open Scale Calibration, zero the empty moving belt, then calibrate with a known stopped weight.
+9. Put a known weight on the section, move the belt a known distance, and verify
    cumulative pounds follows `weight / section length * belt travel`.
 
 ## Known first-pass limits
 
-- Conveyor calibration/setup screens in the PC app are still listed as not built
-  in the repository README, so end-to-end field calibration is not yet complete.
 - Belt pulse GPIO remains fixed at the old RPM input (GPIO 35) in the portal.
 - The WiFi and firmware-update sub-pages still come from the current YieldFlo
   files; their page titles may still say YieldFlo until the cosmetic rename pass.

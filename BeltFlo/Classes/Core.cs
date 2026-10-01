@@ -203,7 +203,12 @@ namespace BeltFlo.Classes
             // Below the empty-belt threshold the belt is carrying dirt, not crop —
             // cleaning the belt or running it empty — so nothing is credited to the
             // job, the load or the map.
-            if (dLb > 0 && Yield.IsFlowing) Collector?.OnPoundsDelta(dLb);
+            // The threshold for credited mass is packet-level, not the smoothed
+            // display flow. This counts the first real crop immediately and drops
+            // empty-belt noise immediately when it falls below the configured rate.
+            if (dLb > 0 && Yield.CountCurrentDelta) Collector?.OnPoundsDelta(dLb);
+
+            // Alarm/tail behaviour is intentionally smoother than accounting.
             Collector?.CheckNoLoad(Yield?.IsFlowing ?? false);
 
             // After the pulse time above is current, so weight and pulses are judged

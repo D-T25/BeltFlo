@@ -170,7 +170,7 @@ CREATE INDEX IF NOT EXISTS idx_yield_data_load ON yield_data(load_id);
 CREATE INDEX IF NOT EXISTS idx_loads_job       ON loads(job_id);
 
 -- Early BeltFlo test builds seeded an uncalibrated conveyor with span=1.
--- Zero is the explicit "not calibrated" value now. Only rows with no recorded
+-- Zero is now the explicit uncalibrated value. Only rows with no recorded
 -- zero timestamp are placeholders, so a real calibration is never touched.
 UPDATE conveyor_config
 SET span_lb_per_count = 0

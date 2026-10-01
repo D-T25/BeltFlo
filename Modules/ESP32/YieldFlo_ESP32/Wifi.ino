@@ -103,7 +103,7 @@ void StartWifiAP()
 	uint32_t low32 = (uint32_t)(mac & 0xFFFFFFFF);
 
 	char suffix[9]; // 8 hex + null
-	sprintf(suffix, "%08X", low32);
+	sprintf(suffix, "%08lX", (unsigned long)low32);
 
 	String AP = MDL.APname;
 	AP += "_";

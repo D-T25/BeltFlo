@@ -288,15 +288,11 @@ void SendCAN()
     uint32_t pulses = SnapshotPulses();
     int16_t scaleX10 = SnapshotScaleX10();
 
-    twai_message_t counters;
-    memset(&counters, 0, sizeof(counters));
-    counters.extd = 1;
-    counters.identifier = CAN_COUNTERS_ID;
-    counters.data_length_code = 8;
-    WriteU32LE(counters.data + 0, lbX10);
-    WriteU32LE(counters.data + 4, pulses);
-    twai_transmit(&counters, pdMS_TO_TICKS(10));
-
+    // Send status first. Core.ApplyConveyorStatus() is the PC side's reconnect
+    // hook; it immediately pushes PGN 40011 settings when it sees a new module.
+    // If counters go first they mark ModuleConnected before status arrives and
+    // that immediate settings push is missed (the periodic 2 s heartbeat would
+    // still recover, but the link comes up needlessly slowly).
     twai_message_t status;
     memset(&status, 0, sizeof(status));
     status.extd = 1;
@@ -307,6 +303,15 @@ void SendCAN()
     WriteI32LE(status.data + 3, ScaleRaw);
     status.data[7] = 0;
     twai_transmit(&status, pdMS_TO_TICKS(10));
+
+    twai_message_t counters;
+    memset(&counters, 0, sizeof(counters));
+    counters.extd = 1;
+    counters.identifier = CAN_COUNTERS_ID;
+    counters.data_length_code = 8;
+    WriteU32LE(counters.data + 0, lbX10);
+    WriteU32LE(counters.data + 4, pulses);
+    twai_transmit(&counters, pdMS_TO_TICKS(10));
 }
 
 // -----------------------------------------------------------------------------

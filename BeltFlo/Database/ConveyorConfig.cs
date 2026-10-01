@@ -13,7 +13,7 @@ namespace BeltFlo.Database
         public int Id { get; set; }                     // the calibration revision
         public int ProfileId { get; set; }
         public double ZeroCounts { get; set; }          // raw counts with the belt running empty
-        public double SpanLbPerCount { get; set; } = 1; // pounds per raw count above zero
+        public double SpanLbPerCount { get; set; } = 0; // 0 until known-weight calibration; pounds per raw count above zero
         public DateTime? ZeroSetAt { get; set; }
         public int PulsesPerRev { get; set; }           // pulses in one full belt revolution; 0 = not measured
         public double InchesPerPulse { get; set; } = 1.0;
@@ -32,7 +32,6 @@ namespace BeltFlo.Database
             ZeroSetAt.HasValue
             && !double.IsNaN(SpanLbPerCount)
             && !double.IsInfinity(SpanLbPerCount)
-            && Math.Abs(SpanLbPerCount) > 1e-9
-            && Math.Abs(Math.Abs(SpanLbPerCount) - 1.0) > 1e-6;
+            && Math.Abs(SpanLbPerCount) > 1e-9;
     }
 }

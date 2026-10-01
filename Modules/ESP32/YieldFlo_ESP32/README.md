@@ -1,109 +1,135 @@
-# YieldFlo_ESP32
+# BeltFlo ESP32 firmware — first conveyor conversion
 
-YieldFlo module firmware for the ESP32 (DOIT ESP32 DEVKIT V1). Reads the
-optical grain-flow sensor, the Moisture1 daughter board (ADS1115) and an
-optional RPM sensor, and sends the data to the PC app over **WiFi UDP,
-wired Ethernet UDP (W5500) or CAN bus** — selectable at runtime in the
-web portal.
+This is the first BeltFlo conversion of `Modules/ESP32/YieldFlo_ESP32`.
+It deliberately keeps the proven YieldFlo ESP32 networking, captive portal,
+EEPROM, W5500 Ethernet, TWAI CAN and ESP2SOTA OTA structure, and replaces the
+grain-specific sensing with a conveyor scale and belt-distance input.
 
-Settings are stored in EEPROM and edited through the module's web portal;
-nothing needs to be recompiled to reconfigure.
+## What changed
 
-## Web portal
+- NAU7802 / Load Cell 2 Click replaces the ADS1115 moisture board.
+- The old RPM input on GPIO 35 is reused as the belt proximity input.
+- The existing EEPROM layout/version is retained, so current WiFi/Ethernet/CAN settings survive the firmware change.
+- Optical grain-flow code is removed from the measurement path.
+- BeltFlo PC settings PGN **40011** are received over UDP or CAN.
+- Conveyor data PGN **40010** is sent at 5 Hz over UDP.
+- BeltFlo CAN frames `0x18FF02F8` and `0x18FF03F8` are sent at 5 Hz.
+- The firmware integrates conveyor mass as:
 
-The module always runs a WiFi access point, even in CAN mode:
+  `delivered_lb += section_lb / section_length_in * belt_travel_in`
 
-- AP name: `YieldFlo_ESP32_<8 hex digits of the MAC>`; open network unless an
-  AP password of 8+ characters is set in the portal.
-- Portal address: `192.168.<200 + module ID>.1` (default ID 0 → `192.168.200.1`).
-  A captive-portal DNS redirects any address, and mDNS answers at `yieldflo`.
-- Firmware update page: `/update` (ESP2SOTA). Prebuilt images live one folder
-  up (`YieldFlo_ESP32.ino.bin`).
+- The module sets the BeltFlo status bits for Scale OK, Belt Running,
+  calibrated/tared, PC-settings heartbeat and converter overload.
+- The web main page now shows live scale, belt, settings and communication status.
 
-Portal settings:
-
-| Setting | Meaning |
-|---|---|
-| Comm mode | WiFi UDP, CAN bus, or Ethernet UDP (W5500) |
-| Ethernet subnet | First three octets of the wired network (default `192.168.1`). Module IP is `subnet.(50 + ID)`, /24, broadcast to `subnet.255`. In Ethernet mode the portal shows W5500/link status |
-| Signals | *Main + Comp* noise rejection, or *Main only* (e.g. FarmTrx tap — Comp not wired) |
-| Network / Password + Connect | Optional station mode: also join an existing WiFi network (default `Tractor`). After repeated failures the module reverts to AP-only and restarts |
-| AP password | Password for the module's own access point |
-
-Settings are validated against an EEPROM layout version (`StructVersion`) —
-bumping it in the source wipes stored settings back to defaults.
-
-## Hardware / pins (defaults)
+## Hardware / pins
 
 | Signal | GPIO | Notes |
-|---|---|---|
-| Optical sensor Main | 33 | 3.3 V logic — condition/divide on the board (YF1) |
-| Optical sensor Comp | 32 | Same. Unused in Main-only mode |
-| RPM sensor | 35 | Input-only pin, no internal pull-up |
-| ADS1115 SDA | 21 | Through PCA9306 level shifter on the YF1 board |
-| ADS1115 SCL | 22 | Same |
-| ADS1115 ALERT/RDY | 16 | Open-drain active-low, conversion-ready interrupt |
-| CAN TX | 14 | → MCP2562 TXD |
-| CAN RX | 27 | ← MCP2562 RXD |
-| W5500 SS | 5 | Ethernet board chip select (same wiring as AOG_RC) |
-| W5500 SCK / MISO / MOSI | 18 / 19 / 23 | VSPI defaults; W5500 also needs 3.3 V + GND |
-| Debug UART | USB serial | 38400 baud, boot messages + CAN warnings |
+|---|---:|---|
+| NAU7802 SDA | 21 | ESP32/YF1 I2C SDA |
+| NAU7802 SCL | 22 | ESP32/YF1 I2C SCL |
+| Belt proximity pulse | 35 | Reuses YieldFlo RPM input; input-only pin, YF1 conditioning expected |
+| CAN TX | 14 | To MCP2562 TXD |
+| CAN RX | 27 | From MCP2562 RXD |
+| W5500 SS | 5 | Ethernet chip select |
+| W5500 SCK/MISO/MOSI | 18/19/23 | VSPI defaults |
 
-Pin assignments live in `ModuleConfig` (EEPROM) but are not exposed on the
-portal — change the defaults in the source if a board revision moves them.
+The two conveyor load cells should be electrically combined into the single
+weighing channel presented to the NAU7802, so the module sees one raw scale
+value for the whole weighed section.
 
-## Building
+## Required Arduino libraries
 
-Arduino IDE (or arduino-cli) with the **esp32 core** (tested with 3.3.7),
-board **DOIT ESP32 DEVKIT V1**. One external library: **Ethernet_Generic**
-(install via Library Manager — the same library AOG_RC uses for the W5500).
-The modified ESP2SOTA OTA library is bundled in `src/ESP2SOTA_RC/` (it must
-stay under `src/` so Arduino builds compile it). The `.vcxproj` / `__vm`
-files are a Visual Micro project for building from Visual Studio; plain
-Arduino IDE users can ignore them.
+Keep the existing YieldFlo dependencies and add:
 
-## Protocol
+- **SparkFun Qwiic Scale NAU7802 Arduino Library**
+  - Header: `SparkFun_Qwiic_Scale_NAU7802_Arduino_Library.h`
+  - `begin()` configures the NAU7802 for gain 128 and 80 samples/second.
 
-Both transports carry the same 8-byte data body:
+Existing requirements still include ESP32 Arduino core, `Ethernet_Generic`, and
+the bundled `src/ESP2SOTA_RC` code.
+
+## BeltFlo UDP protocol
+
+### Module -> PC
+
+Port **30300**, PGN **40010**, 19 bytes:
 
 | Bytes | Field |
 |---|---|
-| 0 | status_flags: bit0=SensorOK, bit1=RPMPresent, bit2=MoistureOK |
-| 1-2 | sensor_ratio uint16 LE (ratio × 1000) |
-| 3-4 | moisture_raw uint16 LE (raw ADS1115 AIN0-AIN1 differential) |
-| 5-6 | module_rpm uint16 LE (fixed 200 when no RPM sensor) |
-| 7 | noise_count (ISR-rejected edges per 200 ms window, capped 255) |
+| 0-1 | PGN 40010 little-endian |
+| 2 | flags: bit0 ScaleOK, bit1 BeltRunning, bit2 Tared/Calibrated, bit3 ReceivingFromPC, bit4 Overload |
+| 3-6 | cumulative pounds x10, uint32 LE |
+| 7-10 | cumulative belt pulses, uint32 LE |
+| 11-12 | live section pounds x10, int16 LE |
+| 13-16 | filtered raw NAU7802 counts, int32 LE |
+| 17 | reserved |
+| 18 | byte-sum CRC8 |
 
-**WiFi / Ethernet UDP** — module listens on port 28001, sends broadcast to
-port 30100 (Ethernet mode broadcasts to `subnet.255` on the wired network;
-packet format is identical):
+### PC -> module
 
-- Data packet, 5 Hz: 11 bytes — PGN 40001 LE, 8-byte body, CRC8 (byte sum)
-- Temperature packet, 1 Hz: 10 bytes — PGN 40002 LE, flags, temp_raw int16 LE
-  (raw ADS1115 AIN2), paddle_hz uint8 (paddles/s), min_cycle_ms uint8,
-  gate_rejects uint8, median_cycle_ms uint8, CRC8
+Module listens on port **30400**, PGN **40011**, 18 bytes. The 13-byte settings
+block is exactly the layout in `BeltFlo/Communication/ModuleSettings.cs`:
 
-**CAN bus** — 250 kbps, extended IDs, DLC 8:
+| Block bytes | Field |
+|---|---|
+| 0-3 | zero counts, int32 |
+| 4-7 | span lb/count, float32 |
+| 8-9 | weighed section length x10 inches, uint16 |
+| 10-11 | belt travel x1000 inches/pulse, uint16 |
+| 12 | belt-stop timeout x10 seconds, uint8 |
 
-- Data frame, 5 Hz: `0x18FF00F8`, 8-byte body (no CRC byte — CAN has its own)
-- Temperature frame, 1 Hz: `0x18FF01F8`, [0]=flags, [1-2]=temp_raw,
-  [3]=paddle_hz, [4]=min_cycle_ms, [5]=gate_rejects, [6]=median_cycle_ms, [7]=0
+The block is protected by CRC-16/CCITT-FALSE and the whole UDP packet by the
+same byte-sum CRC8 used elsewhere in BeltFlo.
 
-Temperature-packet flags: bit0=TempOK, bit1=PaddleHzPresent,
-bit2=MinCycleMsPresent, bit3=GateRejectsPresent, bit4=MedianCycleMsPresent.
-Each field was added at the end of the packet with its own flag bit, and the
-CRC is always the final byte over everything before it, so the app parses any
-firmware vintage by checking flag and length together.
+## BeltFlo CAN protocol
 
-The last three are the period gate's diagnostics: `gate_rejects` counts what it
-caught, `min_cycle_ms` what got through, and `median_cycle_ms` the period
-estimate its threshold is `GatePercent` of — 0 there means the estimator is
-unarmed and the gate is passing everything.
+At 250 kbps, extended IDs:
 
-CAN Bus Off is retried every 3 s; after 5 failed recoveries the module falls
-back to WiFi for the session (EEPROM unchanged — CAN returns on restart).
+- `0x18FF02F8`: cumulative pounds x10 + cumulative pulses
+- `0x18FF03F8`: status flags + scale pounds x10 + raw counts
+- `0x18FF04F9`: PC settings block bytes 0-7
+- `0x18FF05F9`: PC settings block bytes 8-12 + CRC-16
 
-## Firmware version
+## Applying this patch
 
-`InoID` encodes the build date as DDMMY (e.g. 4076 → 2026-07-04). Update it
-with every build; the boot banner prints it decoded.
+Replace these files inside the current `Modules/ESP32/YieldFlo_ESP32` folder:
+
+- `YieldFlo_ESP32.ino`
+- `Begin.ino`
+- `Analog.ino`
+- `Flow.ino`
+- `Comm.ino`
+- `PgMain.ino`
+- `GUI.ino`
+- `README.md`
+
+Keep the current `Wifi.ino`, `PgWifi.ino`, `PgUpdate.ino` and
+`src/ESP2SOTA_RC/` files. They are intentionally reused unchanged for now.
+
+The folder/main-sketch name is left as `YieldFlo_ESP32` in this first patch so
+Arduino and the existing Visual Micro project continue to open without a rename.
+The running firmware identifies itself as **BeltFlo_ESP32**. Existing communication settings are retained; an untouched default `YieldFlo_ESP32` hotspot name is migrated to `BeltFlo_ESP32`, while custom hotspot names are preserved.
+
+## First bench test
+
+1. Install the SparkFun NAU7802 library.
+2. Apply the replacement files above and compile/upload.
+3. Connect to the BeltFlo hotspot and open the module page.
+4. Confirm `Scale = OK` and that raw counts change when weight is applied.
+5. Run BeltFlo PC app and confirm `PC settings = Receiving`.
+6. Rotate the belt sensor target by hand and confirm `Belt pulses` increments.
+7. Enter/activate calibration and conveyor geometry in the PC app once those
+   setup screens are available, or inject PGN 40011 from the simulator/test tool.
+8. Put a known weight on the section, move the belt a known distance, and verify
+   cumulative pounds follows `weight / section length * belt travel`.
+
+## Known first-pass limits
+
+- Conveyor calibration/setup screens in the PC app are still listed as not built
+  in the repository README, so end-to-end field calibration is not yet complete.
+- Belt pulse GPIO remains fixed at the old RPM input (GPIO 35) in the portal.
+- The WiFi and firmware-update sub-pages still come from the current YieldFlo
+  files; their page titles may still say YieldFlo until the cosmetic rename pass.
+- This code has been protocol-checked against the current BeltFlo source, but it
+  has not yet been compiled on the target Arduino toolchain or tested on hardware.

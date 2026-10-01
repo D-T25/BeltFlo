@@ -19,7 +19,9 @@ grain-specific sensing with a conveyor scale and belt-distance input.
   `delivered_lb += section_lb / section_length_in * belt_travel_in`
 
 - The module sets the BeltFlo status bits for Scale OK, Belt Running,
-  calibrated/tared, PC-settings heartbeat and converter overload.
+  zero/tare status, PC-settings heartbeat and converter overload.
+- Pound integration is disabled until a real zero and span have both been received;
+  the current PC default span of 1 lb/count is treated as an uncalibrated placeholder.
 - The web main page now shows live scale, belt, settings and communication status.
 
 ## Hardware / pins
@@ -58,7 +60,7 @@ Port **30300**, PGN **40010**, 19 bytes:
 | Bytes | Field |
 |---|---|
 | 0-1 | PGN 40010 little-endian |
-| 2 | flags: bit0 ScaleOK, bit1 BeltRunning, bit2 Tared/Calibrated, bit3 ReceivingFromPC, bit4 Overload |
+| 2 | flags: bit0 ScaleOK, bit1 BeltRunning, bit2 Tared/zero set, bit3 ReceivingFromPC, bit4 Overload |
 | 3-6 | cumulative pounds x10, uint32 LE |
 | 7-10 | cumulative belt pulses, uint32 LE |
 | 11-12 | live section pounds x10, int16 LE |

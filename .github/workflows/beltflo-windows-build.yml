@@ -1,0 +1,40 @@
+name: BeltFlo Windows Build
+
+on:
+  push:
+    paths:
+      - "BeltFlo/**"
+      - "ModuleSimulator/**"
+      - "BeltFlo.sln"
+      - ".github/workflows/beltflo-windows-build.yml"
+  pull_request:
+    paths:
+      - "BeltFlo/**"
+      - "ModuleSimulator/**"
+      - "BeltFlo.sln"
+      - ".github/workflows/beltflo-windows-build.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: beltflo-windows-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Restore packages
+        run: nuget restore BeltFlo.sln
+
+      - name: Build Release
+        run: dotnet build BeltFlo.sln -c Release --no-restore
+
+      - name: List application output
+        shell: pwsh
+        run: |
+          Get-ChildItem BeltFloApp -Recurse | Select-Object FullName, Length

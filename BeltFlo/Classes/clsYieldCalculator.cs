@@ -29,6 +29,14 @@ namespace BeltFlo.Classes
         public double CurrentLbPerSec { get; private set; }           // mass flow over the scale, lightly smoothed
         public double BeltFtPerMin { get; private set; }              // from differenced pulses
         public bool IsFlowing { get; private set; }
+
+        // Packet-level decision for MASS accounting. IsFlowing above is deliberately
+        // smoothed for the display and tail-empty logic; using that EMA to decide
+        // whether real pounds count drops the first crop at startup and can count
+        // a few empty-belt increments after flow stops.
+        public double LastPacketLbPerSec { get; private set; }
+        public bool CountCurrentDelta { get; private set; }
+
         public double InstantYield { get; private set; }              // lb/ac
         public double SmoothedYield { get; private set; }             // exponentially smoothed, display only
         public double InstantWorkRate { get; private set; }           // lb/hr
@@ -86,12 +94,21 @@ namespace BeltFlo.Classes
 
             double dLb = dLbX10 / 10.0;
 
-            // Two packets inside 10 ms is a transport hiccup, not a measurement. The
-            // pounds are still real and are still returned; only the rate is skipped.
-            if (dt < 0.01) return dLb;
+            // Two packets inside 10 ms is a transport hiccup, not a meaningful
+            // rate sample. The pounds are still real; use the previous smoothed
+            // flow state for this rare packet rather than manufacturing a huge
+            // rate from a tiny dt.
+            if (dt < 0.01)
+            {
+                CountCurrentDelta = dLb > 0 && IsFlowing;
+                return dLb;
+            }
 
             double rate = dLb / dt;
             double belt = dPulses * InchesPerPulse / 12.0 / dt * 60.0;
+
+            LastPacketLbPerSec = rate;
+            CountCurrentDelta  = dLb > 0 && rate > FlowThresholdLbPerSec;
 
             CurrentLbPerSec = CurrentLbPerSec * (1 - RateAlpha) + rate * RateAlpha;
             BeltFtPerMin    = BeltFtPerMin    * (1 - RateAlpha) + belt * RateAlpha;
@@ -106,9 +123,11 @@ namespace BeltFlo.Classes
             _prevLbX10  = cumPoundsX10;
             _prevPulses = cumPulses;
             _prevUtc    = utc;
-            CurrentLbPerSec = 0;
-            BeltFtPerMin    = 0;
-            IsFlowing       = false;
+            CurrentLbPerSec    = 0;
+            BeltFtPerMin       = 0;
+            LastPacketLbPerSec = 0;
+            CountCurrentDelta  = false;
+            IsFlowing          = false;
         }
 
         /// <summary>

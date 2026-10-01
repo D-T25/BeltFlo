@@ -64,6 +64,8 @@ namespace BeltFlo.Classes
         public static int ActiveCalRev    { get; set; } = -1;   // conveyor_config row the app expects the module to run
         public static int ActiveRowsInUse { get; set; } = 0;    // rows the digging width is worked out from; recorded on every point
         public static bool ScaleWeighsIntoTank { get; private set; } // the active harvester's scale feeds a tank, not the truck
+        /// <summary>True when the active profile has a real zero and span, not the seeded placeholder.</summary>
+        public static bool ActiveScaleCalibrated => _activeConveyor?.IsCalibrated == true;
 
         // Flags
         public static bool IsShuttingDown { get; private set; }

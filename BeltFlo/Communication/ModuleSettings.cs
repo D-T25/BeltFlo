@@ -45,7 +45,11 @@ namespace BeltFlo.Communication
         {
             var b = new byte[13];
             Array.Copy(BitConverter.GetBytes((int)Math.Round(c.ZeroCounts)), 0, b, 0, 4);
-            Array.Copy(BitConverter.GetBytes((float)c.SpanLbPerCount), 0, b, 4, 4);
+            // Keep the packet layout unchanged, but send an unusable span until
+            // calibration is real. The module then reports zero/tare separately
+            // while refusing to accumulate pounds from a placeholder calibration.
+            float span = c.IsCalibrated ? (float)c.SpanLbPerCount : 0.0f;
+            Array.Copy(BitConverter.GetBytes(span), 0, b, 4, 4);
             Array.Copy(BitConverter.GetBytes(ToUInt16(c.SectionLenIn * 10.0)), 0, b, 8, 2);
             Array.Copy(BitConverter.GetBytes(ToUInt16(c.InchesPerPulse * 1000.0)), 0, b, 10, 2);
             b[12] = (byte)Math.Max(0, Math.Min(255, Math.Round(c.BeltStopTimeoutS * 10.0)));

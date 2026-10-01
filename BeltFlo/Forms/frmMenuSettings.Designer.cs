@@ -40,6 +40,9 @@ namespace BeltFlo.Forms
             this.lblAutoResume = new System.Windows.Forms.Label();
             this.btnAutoResumeOn = new System.Windows.Forms.Button();
             this.btnAutoResumeOff = new System.Windows.Forms.Button();
+            this.lblTruckFull = new System.Windows.Forms.Label();
+            this.lblTruckFullVal = new System.Windows.Forms.Label();
+            this.lblTruckFullUnit = new System.Windows.Forms.Label();
             this.btnSaveSettings = new System.Windows.Forms.Button();
             this.btnSettingsClose = new System.Windows.Forms.Button();
             this.pnlTitle.SuspendLayout();
@@ -90,12 +93,15 @@ namespace BeltFlo.Forms
             this.pnlContent.Controls.Add(this.lblAutoResume);
             this.pnlContent.Controls.Add(this.btnAutoResumeOn);
             this.pnlContent.Controls.Add(this.btnAutoResumeOff);
+            this.pnlContent.Controls.Add(this.lblTruckFull);
+            this.pnlContent.Controls.Add(this.lblTruckFullVal);
+            this.pnlContent.Controls.Add(this.lblTruckFullUnit);
             this.pnlContent.Controls.Add(this.btnSaveSettings);
             this.pnlContent.Controls.Add(this.btnSettingsClose);
             this.pnlContent.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlContent.Location = new System.Drawing.Point(2, 50);
             this.pnlContent.Name = "pnlContent";
-            this.pnlContent.Size = new System.Drawing.Size(560, 510);
+            this.pnlContent.Size = new System.Drawing.Size(560, 564);
             this.pnlContent.TabIndex = 1;
             // 
             // lblWifiInfo
@@ -345,13 +351,47 @@ namespace BeltFlo.Forms
             this.btnAutoResumeOff.UseVisualStyleBackColor = false;
             this.btnAutoResumeOff.Click += new System.EventHandler(this.btnAutoResumeOff_Click);
             //
+            // lblTruckFull
+            //
+            this.lblTruckFull.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
+            this.lblTruckFull.ForeColor = System.Drawing.Color.Silver;
+            this.lblTruckFull.Location = new System.Drawing.Point(8, 454);
+            this.lblTruckFull.Name = "lblTruckFull";
+            this.lblTruckFull.Size = new System.Drawing.Size(300, 26);
+            this.lblTruckFull.TabIndex = 24;
+            this.lblTruckFull.Text = "Truck Full Warning";
+            //
+            // lblTruckFullVal
+            //
+            this.lblTruckFullVal.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.lblTruckFullVal.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.lblTruckFullVal.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
+            this.lblTruckFullVal.ForeColor = System.Drawing.Color.White;
+            this.lblTruckFullVal.Location = new System.Drawing.Point(285, 450);
+            this.lblTruckFullVal.Name = "lblTruckFullVal";
+            this.lblTruckFullVal.Size = new System.Drawing.Size(195, 36);
+            this.lblTruckFullVal.TabIndex = 25;
+            this.lblTruckFullVal.Text = "Off";
+            this.lblTruckFullVal.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.lblTruckFullVal.Click += new System.EventHandler(this.lblTruckFullVal_Click);
+            //
+            // lblTruckFullUnit
+            //
+            this.lblTruckFullUnit.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
+            this.lblTruckFullUnit.ForeColor = System.Drawing.Color.Silver;
+            this.lblTruckFullUnit.Location = new System.Drawing.Point(488, 456);
+            this.lblTruckFullUnit.Name = "lblTruckFullUnit";
+            this.lblTruckFullUnit.Size = new System.Drawing.Size(64, 24);
+            this.lblTruckFullUnit.TabIndex = 26;
+            this.lblTruckFullUnit.Text = "";
+            //
             // btnSaveSettings
             //
             this.btnSaveSettings.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(0)))), ((int)(((byte)(110)))), ((int)(((byte)(0)))));
             this.btnSaveSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSaveSettings.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnSaveSettings.ForeColor = System.Drawing.Color.White;
-            this.btnSaveSettings.Location = new System.Drawing.Point(8, 454);
+            this.btnSaveSettings.Location = new System.Drawing.Point(8, 508);
             this.btnSaveSettings.Name = "btnSaveSettings";
             this.btnSaveSettings.Size = new System.Drawing.Size(130, 44);
             this.btnSaveSettings.TabIndex = 18;
@@ -365,7 +405,7 @@ namespace BeltFlo.Forms
             this.btnSettingsClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSettingsClose.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnSettingsClose.ForeColor = System.Drawing.Color.White;
-            this.btnSettingsClose.Location = new System.Drawing.Point(422, 454);
+            this.btnSettingsClose.Location = new System.Drawing.Point(422, 508);
             this.btnSettingsClose.Name = "btnSettingsClose";
             this.btnSettingsClose.Size = new System.Drawing.Size(130, 44);
             this.btnSettingsClose.TabIndex = 19;
@@ -376,7 +416,7 @@ namespace BeltFlo.Forms
             // frmMenuSettings
             // 
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(564, 562);
+            this.ClientSize = new System.Drawing.Size(564, 616);
             this.Controls.Add(this.pnlContent);
             this.Controls.Add(this.pnlTitle);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F);
@@ -417,6 +457,9 @@ namespace BeltFlo.Forms
         private System.Windows.Forms.Label    lblAutoResume;
         private System.Windows.Forms.Button   btnAutoResumeOn;
         private System.Windows.Forms.Button   btnAutoResumeOff;
+        private System.Windows.Forms.Label    lblTruckFull;
+        private System.Windows.Forms.Label    lblTruckFullVal;
+        private System.Windows.Forms.Label    lblTruckFullUnit;
         private System.Windows.Forms.Button   btnSaveSettings;
         private System.Windows.Forms.Button   btnSettingsClose;
     }

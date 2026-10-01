@@ -836,12 +836,7 @@ namespace BeltFlo.Classes
         /// </summary>
         private bool ScaleUsable()
         {
-            return Core.ModuleConnected
-                && Core.ModuleReceiving
-                && Core.LastScaleOk
-                && !Core.LastOverload
-                && Core.LastTared
-                && Core.ActiveScaleCalibrated;
+            return Core.ScaleDataUsable;
         }
 
         /// <summary>

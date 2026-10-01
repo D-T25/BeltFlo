@@ -24,6 +24,7 @@ namespace ModuleSimulator
             this.lblFaults          = new System.Windows.Forms.Label();
             this.chkModuleOffline   = new System.Windows.Forms.CheckBox();
             this.chkScaleFault      = new System.Windows.Forms.CheckBox();
+            this.chkOverload        = new System.Windows.Forms.CheckBox();
             this.chkBeltStopped     = new System.Windows.Forms.CheckBox();
             this.chkBeltSensorDead  = new System.Windows.Forms.CheckBox();
             this.chkNotZeroed       = new System.Windows.Forms.CheckBox();
@@ -111,64 +112,68 @@ namespace ModuleSimulator
             this.chkScaleFault.Location = new System.Drawing.Point(10, 353);
             this.chkScaleFault.AutoSize = true;
 
+            this.chkOverload.Text     = "Scale overload flag — Overload = 1";
+            this.chkOverload.Location = new System.Drawing.Point(10, 497);
+            this.chkOverload.AutoSize = true;
+
             this.chkBeltStopped.Text     = "Belt stopped — pulses frozen";
-            this.chkBeltStopped.Location = new System.Drawing.Point(10, 377);
+            this.chkBeltStopped.Location = new System.Drawing.Point(10, 497);
             this.chkBeltStopped.AutoSize = true;
 
             this.chkBeltSensorDead.Text     = "Belt sensor dead — belt runs, no pulses";
-            this.chkBeltSensorDead.Location = new System.Drawing.Point(10, 401);
+            this.chkBeltSensorDead.Location = new System.Drawing.Point(10, 497);
             this.chkBeltSensorDead.AutoSize = true;
 
             this.chkNotZeroed.Text     = "Not zeroed — Tared = 0";
-            this.chkNotZeroed.Location = new System.Drawing.Point(10, 425);
+            this.chkNotZeroed.Location = new System.Drawing.Point(10, 497);
             this.chkNotZeroed.AutoSize = true;
 
             // Old firmware: ignores the settings message, so its checksum never matches
             this.chkIgnoreSettings.Text     = "Ignore settings — old firmware";
-            this.chkIgnoreSettings.Location = new System.Drawing.Point(10, 449);
+            this.chkIgnoreSettings.Location = new System.Drawing.Point(10, 497);
             this.chkIgnoreSettings.AutoSize = true;
 
             // Weigh with the app's zero and span, for testing Scale Calibration
             this.chkApplyCal.Text     = "Apply app zero and span (calibration test)";
-            this.chkApplyCal.Location = new System.Drawing.Point(10, 473);
+            this.chkApplyCal.Location = new System.Drawing.Point(10, 497);
             this.chkApplyCal.AutoSize = true;
 
             // Readout labels
             this.lblFlow.Text     = "Flow: 0.00 lb/s";
             this.lblFlow.Font     = new System.Drawing.Font("Courier New", 11F);
-            this.lblFlow.Location = new System.Drawing.Point(10, 507);
+            this.lblFlow.Location = new System.Drawing.Point(10, 531);
             this.lblFlow.AutoSize = true;
 
             this.lblTotal.Text     = "Total: 0.0 lb";
             this.lblTotal.Font     = new System.Drawing.Font("Courier New", 11F);
-            this.lblTotal.Location = new System.Drawing.Point(10, 529);
+            this.lblTotal.Location = new System.Drawing.Point(10, 553);
             this.lblTotal.AutoSize = true;
 
             this.lblPulses.Text     = "Pulses: 0";
             this.lblPulses.Font     = new System.Drawing.Font("Courier New", 11F);
-            this.lblPulses.Location = new System.Drawing.Point(10, 551);
+            this.lblPulses.Location = new System.Drawing.Point(10, 599);
             this.lblPulses.AutoSize = true;
 
             this.lblSettings.Text     = "Settings: none received";
             this.lblSettings.Font     = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
-            this.lblSettings.Location = new System.Drawing.Point(10, 575);
+            this.lblSettings.Location = new System.Drawing.Point(10, 599);
             this.lblSettings.AutoSize = true;
 
             // Status
             this.lblStatus.Text      = "Initializing...";
-            this.lblStatus.Location  = new System.Drawing.Point(10, 601);
+            this.lblStatus.Location  = new System.Drawing.Point(10, 625);
             this.lblStatus.AutoSize  = true;
             this.lblStatus.ForeColor = System.Drawing.Color.DarkGreen;
 
             // Form
-            this.ClientSize      = new System.Drawing.Size(400, 630);
+            this.ClientSize      = new System.Drawing.Size(400, 654);
             this.Controls.AddRange(new System.Windows.Forms.Control[] {
                 lblTitle,
                 lblLoadSlider, trkLoad,
                 lblBeltSlider, trkBelt,
                 chkSections,
                 chkSineWave, lblVariationSlider, trkVariation,
-                lblFaults, chkModuleOffline, chkScaleFault, chkBeltStopped, chkBeltSensorDead, chkNotZeroed,
+                lblFaults, chkModuleOffline, chkScaleFault, chkOverload, chkBeltStopped, chkBeltSensorDead, chkNotZeroed,
                 chkIgnoreSettings, chkApplyCal,
                 lblFlow, lblTotal, lblPulses, lblSettings,
                 lblStatus });
@@ -198,6 +203,7 @@ namespace ModuleSimulator
         private System.Windows.Forms.Label    lblFaults;
         private System.Windows.Forms.CheckBox chkModuleOffline;
         private System.Windows.Forms.CheckBox chkScaleFault;
+        private System.Windows.Forms.CheckBox chkOverload;
         private System.Windows.Forms.CheckBox chkBeltStopped;
         private System.Windows.Forms.CheckBox chkBeltSensorDead;
         private System.Windows.Forms.CheckBox chkNotZeroed;

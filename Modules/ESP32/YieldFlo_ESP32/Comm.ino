@@ -1,328 +1,392 @@
+// BeltFlo conveyor communication.
+//
+// UDP module -> PC, PGN 40010, 19 bytes, 5 Hz, destination port 30300.
+// UDP PC -> module, PGN 40011, 18 bytes, listen port 30400.
+//
+// CAN module -> PC:
+//   0x18FF02F8 counters [cum_lb_x10 uint32, cum_pulses uint32]
+//   0x18FF03F8 status   [flags, scale_lb_x10 int16, scale_raw int32, reserved]
+// CAN PC -> module:
+//   0x18FF04F9 settings bytes 0..7
+//   0x18FF05F9 settings bytes 8..12 + CRC16
 
-// ── Shared 8-byte data body ──────────────────────────────────────────────
-// Both SendComm() and SendCAN() build this body from the same sensor state.
-// Layout:
-//   [0]   status_flags  bit0=SensorOK, bit1=RPMPresent, bit2=MoistureOK,
-//                       bit3=CompFault
-//   [1-2] sensor_ratio  uint16 LE  (ratio × 1000, 0–1000 = 0.0–100.0%)
-//   [3-4] moisture_raw  uint16 LE  (value × 10 = tenths %)
-//   [5-6] module_rpm    uint16 LE
-//   [7]   noise_count   uint8  (ISR-rejected edges this window, capped at 255)
+static const uint16_t SETTINGS_PGN = 40011;
+static const uint32_t CAN_COUNTERS_ID = 0x18FF02F8u;
+static const uint32_t CAN_STATUS_ID   = 0x18FF03F8u;
+static const uint32_t CAN_SETTINGS_A_ID = 0x18FF04F9u;
+static const uint32_t CAN_SETTINGS_B_ID = 0x18FF05F9u;
 
-static void BuildDataBody(byte body[8])
+// -----------------------------------------------------------------------------
+// Little-endian helpers
+// -----------------------------------------------------------------------------
+static uint16_t ReadU16LE(const byte* p)
 {
-	static uint32_t lastMs = 0;
-
-	noInterrupts();
-	uint32_t pulses = RPMpulseCount;  RPMpulseCount = 0;
-	uint16_t noise = NoiseCount;     NoiseCount = 0;
-	interrupts();
-
-	uint32_t now = millis();
-	uint32_t elapsed = now - lastMs;
-	lastMs = now;
-
-	// RPM: 1 magnet/rev, normalized by the ACTUAL elapsed time since the last
-	// call rather than an assumed fixed 200ms window — a skipped send (e.g.
-	// CAN Bus Off recovery) lets pulses accumulate over a longer window, and
-	// the old fixed-300 multiplier would report a spurious RPM spike on the
-	// next send. Same fix TakePaddleHz() already applies to paddle Hz.
-	// Fixed reference 200 when no RPM sensor — app uses this to detect absence.
-	uint16_t rpm;
-	if (MDL.RPMpin < NC)
-	{
-		uint32_t rpmCalc = (elapsed == 0) ? 0
-			: (uint32_t)(((uint64_t)pulses * 60000 + elapsed / 2) / elapsed);
-		rpm = (rpmCalc > 65535) ? 65535 : (uint16_t)rpmCalc;
-	}
-	else
-	{
-		rpm = 200;
-	}
-
-	byte flags = 0;
-	if (SensorOK)        flags |= 0x01;  // bit 0 — SensorOK
-	if (MDL.RPMpin < NC) flags |= 0x02;  // bit 1 — RPM sensor present
-	if (ADSFresh())      flags |= 0x04;  // bit 2 — MoistureOK
-	// bit 3 — comp cross-check is discarding every edge; Comp is enabled but not
-	// wired. Rides both transports for free: this body is memcpy'd whole into the
-	// CAN frame and copied byte-for-byte into the UDP packet, and an app that
-	// predates the bit simply ignores it.
-	if (CompFault)       flags |= 0x08;
-
-	body[0] = flags;
-	body[1] = SensorRatio & 0xFF;
-	body[2] = SensorRatio >> 8;
-	body[3] = MoistureReading & 0xFF;            // moisture lo 
-	body[4] = MoistureReading >> 8;              // moisture hi
-	body[5] = rpm & 0xFF;
-	body[6] = rpm >> 8;
-	body[7] = (noise > 255) ? 255 : (uint8_t)noise;
+    return (uint16_t)p[0] | ((uint16_t)p[1] << 8);
 }
 
-// ── CAN bus health monitoring ─────────────────────────────────────────────
-static uint32_t LastBusOffMs = 0;
-static uint8_t  BusOffCount = 0;
+static int32_t ReadI32LE(const byte* p)
+{
+    uint32_t v = (uint32_t)p[0]
+               | ((uint32_t)p[1] << 8)
+               | ((uint32_t)p[2] << 16)
+               | ((uint32_t)p[3] << 24);
+    return (int32_t)v;
+}
 
-// Called every loop() when CAN mode is active.
-// Handles Bus Off recovery and falls back to WiFi after repeated failures.
+static void WriteU16LE(byte* p, uint16_t v)
+{
+    p[0] = (byte)(v & 0xFF);
+    p[1] = (byte)((v >> 8) & 0xFF);
+}
+
+static void WriteU32LE(byte* p, uint32_t v)
+{
+    p[0] = (byte)(v & 0xFF);
+    p[1] = (byte)((v >> 8) & 0xFF);
+    p[2] = (byte)((v >> 16) & 0xFF);
+    p[3] = (byte)((v >> 24) & 0xFF);
+}
+
+static void WriteI16LE(byte* p, int16_t v)
+{
+    WriteU16LE(p, (uint16_t)v);
+}
+
+static void WriteI32LE(byte* p, int32_t v)
+{
+    WriteU32LE(p, (uint32_t)v);
+}
+
+static uint16_t Crc16CcittFalse(const byte* data, uint8_t len)
+{
+    uint16_t crc = 0xFFFF;
+    for (uint8_t n = 0; n < len; n++)
+    {
+        crc ^= (uint16_t)data[n] << 8;
+        for (uint8_t i = 0; i < 8; i++)
+            crc = (crc & 0x8000) ? (uint16_t)((crc << 1) ^ 0x1021) : (uint16_t)(crc << 1);
+    }
+    return crc;
+}
+
+// -----------------------------------------------------------------------------
+// Settings receive / apply
+// -----------------------------------------------------------------------------
+static void ResetIntegrationForSettingChange()
+{
+    noInterrupts();
+    LastIntegratedPulseTotal = BeltPulseTotal;
+    interrupts();
+    HaveIntegrationWeight = false;
+}
+
+static void ApplySettingsBlock(const byte block[13])
+{
+    int32_t zero = ReadI32LE(block + 0);
+
+    float span;
+    memcpy(&span, block + 4, sizeof(float)); // ESP32 is little-endian, same as .NET BitConverter
+
+    float section = ReadU16LE(block + 8) / 10.0f;
+    float ipp = ReadU16LE(block + 10) / 1000.0f;
+    float beltStop = block[12] / 10.0f;
+
+    if (!isfinite(span)) return;
+    if (!isfinite(section) || section <= 0.0f) return;
+    if (!isfinite(ipp) || ipp <= 0.0f) return;
+    if (!isfinite(beltStop) || beltStop <= 0.0f) beltStop = 2.0f;
+
+    bool integrationChanged =
+        (zero != Conveyor.ZeroCounts) ||
+        (span != Conveyor.SpanLbPerCount) ||
+        (section != Conveyor.SectionLenIn) ||
+        (ipp != Conveyor.InchesPerPulse);
+
+    Conveyor.ZeroCounts = zero;
+    Conveyor.SpanLbPerCount = span;
+    Conveyor.SectionLenIn = section;
+    Conveyor.InchesPerPulse = ipp;
+    Conveyor.BeltStopTimeoutS = beltStop;
+    Conveyor.LastReceivedMs = millis();
+    Conveyor.EverReceived = true;
+
+    if (integrationChanged) ResetIntegrationForSettingChange();
+}
+
+static void HandleSettingsUdp(const byte* pkt, int len)
+{
+    if (len < 18) return;
+    if (ReadU16LE(pkt) != SETTINGS_PGN) return;
+
+    // Final byte is the same byte-sum CRC8 used by BeltFlo conveyor packets.
+    byte ck = 0;
+    for (int i = 0; i < 17; i++) ck += pkt[i];
+    if (ck != pkt[17]) return;
+
+    const byte* block = pkt + 2;
+    uint16_t sentCrc = ReadU16LE(pkt + 15);
+    if (Crc16CcittFalse(block, 13) != sentCrc) return;
+
+    ApplySettingsBlock(block);
+}
+
+static byte CanSettingsA[8];
+static bool CanSettingsAValid = false;
+static uint32_t CanSettingsAMs = 0;
+
+static void ReceiveCanFrames()
+{
+    if (MDL.CommMode != CommModeCan) return;
+
+    twai_message_t msg;
+    while (twai_receive(&msg, 0) == ESP_OK)
+    {
+        if (!msg.extd || msg.data_length_code != 8) continue;
+
+        if (msg.identifier == CAN_SETTINGS_A_ID)
+        {
+            memcpy(CanSettingsA, msg.data, 8);
+            CanSettingsAValid = true;
+            CanSettingsAMs = millis();
+        }
+        else if (msg.identifier == CAN_SETTINGS_B_ID)
+        {
+            if (!CanSettingsAValid || (millis() - CanSettingsAMs) > 1000) continue;
+
+            byte block[13];
+            memcpy(block, CanSettingsA, 8);
+            memcpy(block + 8, msg.data, 5);
+            uint16_t sentCrc = ReadU16LE(msg.data + 5);
+
+            if (Crc16CcittFalse(block, 13) == sentCrc)
+                ApplySettingsBlock(block);
+
+            CanSettingsAValid = false;
+        }
+    }
+}
+
+// -----------------------------------------------------------------------------
+// Status / counter snapshots
+// -----------------------------------------------------------------------------
+static byte BuildStatusFlags()
+{
+    byte flags = 0;
+    if (ScaleOK)          flags |= 0x01; // ScaleOK
+    if (BeltRunningNow()) flags |= 0x02; // BeltRunning
+    if (ScaleCalibrated())flags |= 0x04; // Tared / calibrated
+    if (ReceivingFromPC())flags |= 0x08; // settings heartbeat
+    if (ScaleOverload)    flags |= 0x10; // converter near rail
+    return flags;
+}
+
+static uint32_t SnapshotPulses()
+{
+    uint32_t p;
+    noInterrupts();
+    p = BeltPulseTotal;
+    interrupts();
+    return p;
+}
+
+static uint32_t SnapshotPoundsX10()
+{
+    double v = CumulativePounds * 10.0;
+    if (!isfinite(v) || v <= 0.0) return 0;
+    uint64_t q = (uint64_t)llround(v);
+    return (uint32_t)q; // deliberate wrap; PC differences uint32 counters
+}
+
+static int16_t SnapshotScaleX10()
+{
+    double v = (double)ScaleLb * 10.0;
+    if (!isfinite(v)) v = 0;
+    if (v > 32767.0) v = 32767.0;
+    if (v < -32768.0) v = -32768.0;
+    return (int16_t)lround(v);
+}
+
+// -----------------------------------------------------------------------------
+// CAN health monitoring — retained from YieldFlo
+// -----------------------------------------------------------------------------
+static uint32_t LastBusOffMs = 0;
+static uint8_t BusOffCount = 0;
+
 void CheckCanBus()
 {
-	twai_status_info_t st;
-	if (twai_get_status_info(&st) != ESP_OK) return;
+    twai_status_info_t st;
+    if (twai_get_status_info(&st) != ESP_OK) return;
 
-	if (st.state == TWAI_STATE_BUS_OFF)
-	{
-		if (millis() - LastBusOffMs > 3000)
-		{
-			LastBusOffMs = millis();
-			BusOffCount++;
-			Serial.print("CAN Bus Off. Recovery attempt ");
-			Serial.println(BusOffCount);
-			twai_initiate_recovery();   // waits for 128 × 11 recessive bits, then auto-starts
-		}
+    if (st.state == TWAI_STATE_BUS_OFF)
+    {
+        if (millis() - LastBusOffMs > 3000)
+        {
+            LastBusOffMs = millis();
+            BusOffCount++;
+            Serial.print("CAN Bus Off. Recovery attempt ");
+            Serial.println(BusOffCount);
+            twai_initiate_recovery();
+        }
 
-		if (BusOffCount > 5)
-		{
-			Serial.println("CAN Bus Off: persistent. Falling back to WiFi.");
-			MDL.CommMode = CommModeWifi;     // session only — EEPROM unchanged, reverts on restart
-			BusOffCount = 0;
-			SendLastPK1 = 0;         // send WiFi immediately on next loop
-		}
-	}
-	else if (st.state == TWAI_STATE_STOPPED)
-	{
-		twai_start();
-	}
+        if (BusOffCount > 5)
+        {
+            Serial.println("CAN Bus Off: persistent. Falling back to WiFi for this session.");
+            MDL.CommMode = CommModeWifi;
+            BusOffCount = 0;
+            SendLastPK1 = 0;
+        }
+    }
+    else if (st.state == TWAI_STATE_STOPPED)
+    {
+        twai_start();
+    }
 
-	// Status line — the controller's own account of what is wrong:
-	//   msgs_to_tx growing + no errors = RX line stuck dominant (bus "always busy")
-	//   tx_error_counter pinned high   = frames going out but never ACKed
-	//   bus_error_count climbing       = bit/form errors (TXD/RXD wiring)
-	// Checked every 5 s but printed only when something changed, so a healthy
-	// steady bus is silent and a developing fault still logs every 5 s.
-	static uint32_t LastStatusMs = 0;
-	static twai_status_info_t PrevSt;
-	static bool StatusPrinted = false;
-	if (millis() - LastStatusMs > 5000)
-	{
-		LastStatusMs = millis();
+    static uint32_t LastStatusMs = 0;
+    static twai_status_info_t PrevSt;
+    static bool StatusPrinted = false;
 
-		if (StatusPrinted
-			&& st.state == PrevSt.state
-			&& st.msgs_to_tx == PrevSt.msgs_to_tx
-			&& st.tx_error_counter == PrevSt.tx_error_counter
-			&& st.rx_error_counter == PrevSt.rx_error_counter
-			&& st.tx_failed_count == PrevSt.tx_failed_count
-			&& st.bus_error_count == PrevSt.bus_error_count
-			&& st.arb_lost_count == PrevSt.arb_lost_count) return;
+    if (millis() - LastStatusMs > 5000)
+    {
+        LastStatusMs = millis();
 
-		PrevSt = st;
-		StatusPrinted = true;
+        if (StatusPrinted
+            && st.state == PrevSt.state
+            && st.msgs_to_tx == PrevSt.msgs_to_tx
+            && st.tx_error_counter == PrevSt.tx_error_counter
+            && st.rx_error_counter == PrevSt.rx_error_counter
+            && st.tx_failed_count == PrevSt.tx_failed_count
+            && st.bus_error_count == PrevSt.bus_error_count
+            && st.arb_lost_count == PrevSt.arb_lost_count) return;
 
-		Serial.print("CAN state=");
-		Serial.print((int)st.state);
-		Serial.print(" txq=");
-		Serial.print(st.msgs_to_tx);
-		Serial.print(" TEC=");
-		Serial.print(st.tx_error_counter);
-		Serial.print(" REC=");
-		Serial.print(st.rx_error_counter);
-		Serial.print(" txFailed=");
-		Serial.print(st.tx_failed_count);
-		Serial.print(" busErr=");
-		Serial.print(st.bus_error_count);
-		Serial.print(" arbLost=");
-		Serial.println(st.arb_lost_count);
-	}
+        PrevSt = st;
+        StatusPrinted = true;
+
+        Serial.print("CAN state="); Serial.print((int)st.state);
+        Serial.print(" txq="); Serial.print(st.msgs_to_tx);
+        Serial.print(" TEC="); Serial.print(st.tx_error_counter);
+        Serial.print(" REC="); Serial.print(st.rx_error_counter);
+        Serial.print(" txFailed="); Serial.print(st.tx_failed_count);
+        Serial.print(" busErr="); Serial.print(st.bus_error_count);
+        Serial.print(" arbLost="); Serial.println(st.arb_lost_count);
+    }
 }
 
+// -----------------------------------------------------------------------------
+// CAN send, 5 Hz
+// -----------------------------------------------------------------------------
 void SendCAN()
 {
-	SendCANPK1();
-	SendCANPK2();
+    if (millis() - SendLastPK1 < SendTimePK1) return;
+
+    twai_status_info_t st;
+    if (twai_get_status_info(&st) != ESP_OK) return;
+    if (st.state != TWAI_STATE_RUNNING) return;
+
+    SendLastPK1 = millis();
+
+    uint32_t lbX10 = SnapshotPoundsX10();
+    uint32_t pulses = SnapshotPulses();
+    int16_t scaleX10 = SnapshotScaleX10();
+
+    twai_message_t counters;
+    memset(&counters, 0, sizeof(counters));
+    counters.extd = 1;
+    counters.identifier = CAN_COUNTERS_ID;
+    counters.data_length_code = 8;
+    WriteU32LE(counters.data + 0, lbX10);
+    WriteU32LE(counters.data + 4, pulses);
+    twai_transmit(&counters, pdMS_TO_TICKS(10));
+
+    twai_message_t status;
+    memset(&status, 0, sizeof(status));
+    status.extd = 1;
+    status.identifier = CAN_STATUS_ID;
+    status.data_length_code = 8;
+    status.data[0] = BuildStatusFlags();
+    WriteI16LE(status.data + 1, scaleX10);
+    WriteI32LE(status.data + 3, ScaleRaw);
+    status.data[7] = 0;
+    twai_transmit(&status, pdMS_TO_TICKS(10));
 }
 
-// ── CAN bus send (5 Hz) ──────────────────────────────────────────────────
-// Frame ID: 0x18FF00F8 (Extended, Priority=6, PF=0xFF ProprietaryB, PS=0x00, SA=0xF8)
-void SendCANPK1()
+// -----------------------------------------------------------------------------
+// UDP send, 5 Hz
+// -----------------------------------------------------------------------------
+void UdpSend(byte pkt[], int len)
 {
-	if (millis() - SendLastPK1 < SendTimePK1) return;
-
-	// Skip transmit only if controller is stopped. Do NOT gate on tx_error_counter:
-	// with no ACKing node on the bus (app not open yet) TEC rises to error-passive,
-	// and TEC only falls on successful TX — a TEC guard here would block transmit
-	// forever. ACK errors at error-passive cannot reach Bus Off (CAN spec), so
-	// transmitting in that state is safe; CheckCanBus handles recovery if it stops.
-	twai_status_info_t st;
-	if (twai_get_status_info(&st) != ESP_OK)           return;
-	if (st.state != TWAI_STATE_RUNNING)                return;
-
-	SendLastPK1 = millis();
-
-	byte body[8];
-	BuildDataBody(body);
-
-	twai_message_t msg;
-	memset(&msg, 0, sizeof(msg));
-	msg.extd = 1;
-	msg.identifier = 0x18FF00F8;
-	msg.data_length_code = 8;
-	memcpy(msg.data, body, 8);
-
-	twai_transmit(&msg, pdMS_TO_TICKS(10));
-}
-
-void SendCANPK2()
-{
-	if (millis() - SendLastPK2 > SendTimePK2)
-	{
-		SendLastPK2 = millis();
-		twai_status_info_t st;
-		if (twai_get_status_info(&st) != ESP_OK) return;
-		if (st.state != TWAI_STATE_RUNNING)      return;
-
-		byte flags = ADSFresh() ? 0x01 : 0x00;
-		flags |= 0x02;		// bit 1 — paddle_hz field present
-		flags |= 0x04;		// bit 2 — min_cycle_ms field present
-		flags |= 0x08;		// bit 3 — gate_rejects field present
-		flags |= 0x10;		// bit 4 — median_cycle_ms field present
-		int16_t temp = TemperatureReading;
-
-		twai_message_t msg;
-		memset(&msg, 0, sizeof(msg));
-		msg.extd = 1;
-		msg.identifier = 0x18FF01F8;
-		msg.data_length_code = 8;
-		msg.data[0] = flags;
-		msg.data[1] = (byte)(temp & 0xFF);
-		msg.data[2] = (byte)((temp >> 8) & 0xFF);
-		msg.data[3] = TakePaddleHz();
-		msg.data[4] = TakeMinCycleMs();
-		msg.data[5] = TakeGateRejects();
-		msg.data[6] = GetMedianCycleMs();
-
-		twai_transmit(&msg, pdMS_TO_TICKS(10));
-	}
+    if (MDL.CommMode == CommModeEth)
+    {
+        if (!EthChipFound || Ethernet.linkStatus() != LinkON) return;
+        UDP_Ethernet.beginPacket(Ethernet_DestinationIP, ModuleSendPort);
+        UDP_Ethernet.write(pkt, len);
+        UDP_Ethernet.endPacket();
+    }
+    else
+    {
+        UDP_Wifi.beginPacket(Wifi_DestinationIP, ModuleSendPort);
+        UDP_Wifi.write(pkt, len);
+        UDP_Wifi.endPacket();
+    }
 }
 
 void SendUdp()
 {
-	SendUdpPK1();
-	SendUdpPK2();
+    if (millis() - SendLastPK1 < SendTimePK1) return;
+    SendLastPK1 = millis();
+
+    byte pkt[19];
+    memset(pkt, 0, sizeof(pkt));
+
+    pkt[0] = 0x4A; // PGN 40010 little-endian
+    pkt[1] = 0x9C;
+    pkt[2] = BuildStatusFlags();
+    WriteU32LE(pkt + 3, SnapshotPoundsX10());
+    WriteU32LE(pkt + 7, SnapshotPulses());
+    WriteI16LE(pkt + 11, SnapshotScaleX10());
+    WriteI32LE(pkt + 13, ScaleRaw);
+    pkt[17] = 0; // reserved
+    pkt[18] = CRC(pkt, 18, 0);
+
+    UdpSend(pkt, sizeof(pkt));
 }
 
-// Send one packet on the configured UDP transport (WiFi or W5500 ethernet)
-void UdpSend(byte pkt[], int len)
+// -----------------------------------------------------------------------------
+// Receive settings on UDP and CAN
+// -----------------------------------------------------------------------------
+static void DrainWifiSettings()
 {
-	if (MDL.CommMode == CommModeEth)
-	{
-		if (!EthChipFound || Ethernet.linkStatus() != LinkON) return;
-		UDP_Ethernet.beginPacket(Ethernet_DestinationIP, ModuleSendPort);
-		UDP_Ethernet.write(pkt, len);
-		UDP_Ethernet.endPacket();
-	}
-	else
-	{
-		UDP_Wifi.beginPacket(Wifi_DestinationIP, ModuleSendPort);
-		UDP_Wifi.write(pkt, len);
-		UDP_Wifi.endPacket();
-	}
+    int sz = UDP_Wifi.parsePacket();
+    while (sz > 0)
+    {
+        byte pkt[64];
+        int n = UDP_Wifi.read(pkt, sizeof(pkt));
+        if (n > 0) HandleSettingsUdp(pkt, n);
+        UDP_Wifi.flush();
+        sz = UDP_Wifi.parsePacket();
+    }
 }
 
-// ── UDP send (5 Hz) ──────────────────────────────────────────────────────
-void SendUdpPK1()
+static void DrainEthernetSettings()
 {
-	if (millis() - SendLastPK1 < SendTimePK1) return;
-	SendLastPK1 = millis();
+    if (!EthChipFound) return;
 
-	byte body[8];
-	BuildDataBody(body);
-
-	// Build 11-byte UDP packet (PGN 40001)
-	byte pkt[11];
-	pkt[0] = 0x41;		// PGN 40001 low byte
-	pkt[1] = 0x9C;		// PGN 40001 high byte
-	pkt[2] = body[0];	// status_flags
-	pkt[3] = body[1];	// sensor_ratio lo
-	pkt[4] = body[2];	// sensor_ratio hi
-	pkt[5] = body[3];	// moisture_raw lo
-	pkt[6] = body[4];	// moisture_raw hi
-	pkt[7] = body[5];	// module_rpm lo
-	pkt[8] = body[6];	// module_rpm hi
-	pkt[9] = body[7];	// noise_count
-	pkt[10] = CRC(pkt, 10, 0);
-
-	UdpSend(pkt, 11);
+    int sz = UDP_Ethernet.parsePacket();
+    while (sz > 0)
+    {
+        byte pkt[64];
+        int n = UDP_Ethernet.read(pkt, sizeof(pkt));
+        if (n > 0) HandleSettingsUdp(pkt, n);
+        UDP_Ethernet.flush();
+        sz = UDP_Ethernet.parsePacket();
+    }
 }
 
-// ── Second packet: temperature + paddle rate (1 Hz) ─────────────────────
-// UDP  — 10 bytes, PGN 40002  (was 9 before median_cycle_ms; 8 before
-//        gate_rejects, 7 before min_cycle_ms, 6 before paddle_hz — the app
-//        reads by flag bit and length, so a module on older firmware still
-//        parses correctly)
-//   [0-1] PGN 40002 LE  (0x42 0x9C)
-//   [2]   flags  bit0=TempOK, bit1=PaddleHzPresent, bit2=MinCycleMsPresent,
-//                bit3=GateRejectsPresent, bit4=MedianCycleMsPresent
-//   [3-4] temp_raw int16 LE  (raw ADS1115 AIN2 reading)
-//   [5]   paddle_hz uint8  (completed paddle cycles per second)
-//   [6]   min_cycle_ms uint8  (shortest completed paddle cycle this window, ms; 255=none/clipped)
-//   [7]   gate_rejects uint8  (leading edges the period gate rejected this window)
-//   [8]   median_cycle_ms uint8  (gate's period estimate, ms; 0=gate unarmed, 255=clipped)
-//   [9]   CRC8
-// CAN  — ID 0x18FF01F8, DLC=8, [0]=flags, [1-2]=temp_raw, [3]=paddle_hz,
-//        [4]=min_cycle_ms, [5]=gate_rejects, [6]=median_cycle_ms, [7]=0
-//
-// The CRC is always the last byte and is computed over everything before it, so
-// growing the packet needs no change on either side beyond the length.
-
-void SendUdpPK2()
-{
-	if (millis() - SendLastPK2 > SendTimePK2)
-	{
-		SendLastPK2 = millis();
-		byte flags = ADSFresh() ? 0x01 : 0x00;
-		flags |= 0x02;		// bit 1 — paddle_hz field present
-		flags |= 0x04;		// bit 2 — min_cycle_ms field present
-		flags |= 0x08;		// bit 3 — gate_rejects field present
-		flags |= 0x10;		// bit 4 — median_cycle_ms field present
-		int16_t temp = TemperatureReading;
-
-		byte pkt[10];
-		pkt[0] = 0x42;
-		pkt[1] = 0x9C;
-		pkt[2] = flags;
-		pkt[3] = (byte)(temp & 0xFF);
-		pkt[4] = (byte)((temp >> 8) & 0xFF);
-		pkt[5] = TakePaddleHz();
-		pkt[6] = TakeMinCycleMs();
-		pkt[7] = TakeGateRejects();
-		pkt[8] = GetMedianCycleMs();
-		pkt[9] = CRC(pkt, 9, 0);
-
-		UdpSend(pkt, 10);
-	}
-}
-
-
-// ── Receive (drain incoming UDP) ─────────────────────────────────────────
 void ReceiveComm()
 {
-	// Drain incoming UDP packets — no commands defined yet.
-	int sz = UDP_Wifi.parsePacket();
-	while (sz > 0)
-	{
-		UDP_Wifi.flush();
-		sz = UDP_Wifi.parsePacket();
-	}
-
-	if (EthChipFound)
-	{
-		sz = UDP_Ethernet.parsePacket();
-		while (sz > 0)
-		{
-			UDP_Ethernet.flush();
-			sz = UDP_Ethernet.parsePacket();
-		}
-	}
+    // The WiFi socket exists in every comm mode because the BeltFlo access point
+    // stays up for the portal. Accepting settings there as well is useful for
+    // bench testing and does not interfere with CAN or Ethernet operation.
+    DrainWifiSettings();
+    DrainEthernetSettings();
+    ReceiveCanFrames();
 }

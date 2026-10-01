@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS conveyor_config (
     id                  INTEGER PRIMARY KEY AUTOINCREMENT,
     profile_id          INTEGER NOT NULL REFERENCES profiles(id),
     zero_counts         REAL    NOT NULL DEFAULT 0,
-    span_lb_per_count   REAL    NOT NULL DEFAULT 1,
+    span_lb_per_count   REAL    NOT NULL DEFAULT 0,
     zero_set_at         TEXT,
     pulses_per_rev      INTEGER NOT NULL DEFAULT 0,
     inches_per_pulse    REAL    NOT NULL DEFAULT 1,
@@ -168,6 +168,13 @@ CREATE TABLE IF NOT EXISTS yield_data (
 CREATE INDEX IF NOT EXISTS idx_yield_data_job  ON yield_data(job_id);
 CREATE INDEX IF NOT EXISTS idx_yield_data_load ON yield_data(load_id);
 CREATE INDEX IF NOT EXISTS idx_loads_job       ON loads(job_id);
+
+-- Early BeltFlo test builds seeded an uncalibrated conveyor with span=1.
+-- Zero is the explicit "not calibrated" value now. Only rows with no recorded
+-- zero timestamp are placeholders, so a real calibration is never touched.
+UPDATE conveyor_config
+SET span_lb_per_count = 0
+WHERE zero_set_at IS NULL AND ABS(span_lb_per_count - 1.0) < 0.000001;
 ";
             using var cmd = new SQLiteCommand(sql, conn);
             cmd.ExecuteNonQuery();

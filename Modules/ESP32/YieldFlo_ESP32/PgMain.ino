@@ -72,7 +72,9 @@ String GetPageMain()
     st += "<tr><td class='label-col'>Belt pulses</td><td class='input-col'>" + String(pulses) + "</td></tr>";
     st += "<tr><td class='label-col'>Belt running</td><td class='input-col'>" + YesNo(BeltRunningNow()) + "</td></tr>";
     st += "<tr><td class='label-col'>PC settings</td><td class='input-col'>" + String(ReceivingFromPC() ? "Receiving" : "Not receiving") + "</td></tr>";
-    st += "<tr><td class='label-col'>Calibrated</td><td class='input-col'>" + YesNo(ScaleCalibrated()) + "</td></tr>";
+    st += "<tr><td class='label-col'>Zero set</td><td class='input-col'>" + YesNo(ScaleTared()) + "</td></tr>";
+    st += "<tr><td class='label-col'>Span calibrated</td><td class='input-col'>" + YesNo(ScaleSpanCalibrated()) + "</td></tr>";
+    st += "<tr><td class='label-col'>Ready to total</td><td class='input-col'>" + YesNo(ScaleCalibrated()) + "</td></tr>";
     st += "<tr><td class='label-col'>Overload</td><td class='input-col'>" + YesNo(ScaleOverload) + "</td></tr>";
     st += "<tr><td class='label-col'>Total since boot</td><td class='input-col'>" + String(CumulativePounds, 1) + " lb</td></tr>";
 

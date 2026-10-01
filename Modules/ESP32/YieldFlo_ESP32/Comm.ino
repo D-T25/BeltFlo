@@ -366,7 +366,6 @@ static void DrainWifiSettings()
         byte pkt[64];
         int n = UDP_Wifi.read(pkt, sizeof(pkt));
         if (n > 0) HandleSettingsUdp(pkt, n);
-        UDP_Wifi.flush();
         sz = UDP_Wifi.parsePacket();
     }
 }
@@ -381,7 +380,6 @@ static void DrainEthernetSettings()
         byte pkt[64];
         int n = UDP_Ethernet.read(pkt, sizeof(pkt));
         if (n > 0) HandleSettingsUdp(pkt, n);
-        UDP_Ethernet.flush();
         sz = UDP_Ethernet.parsePacket();
     }
 }

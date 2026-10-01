@@ -11,6 +11,10 @@ on:
       - ".github/workflows/beltflo-esp32-compile.yml"
   workflow_dispatch:
 
+concurrency:
+  group: beltflo-esp32-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   compile:
     runs-on: ubuntu-latest

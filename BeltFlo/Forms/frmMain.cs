@@ -335,6 +335,14 @@ namespace BeltFlo.Forms
                 lblStatusScale.Text = Lang.lgStatusZero;
                 lblStatusScale.ForeColor = OkabeIto.Orange;
             }
+            else if (!Core.ActiveScaleCalibrated)
+            {
+                // The module has a zero, but the active harvester profile still
+                // has no valid known-weight span. PGN 40011 deliberately sends
+                // span=0 in this state, so no pounds can be accumulated.
+                lblStatusScale.Text = "CAL";
+                lblStatusScale.ForeColor = OkabeIto.Orange;
+            }
             else
             {
                 lblStatusScale.Text = Lang.lgStatusScale;

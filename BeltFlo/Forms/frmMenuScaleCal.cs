@@ -145,7 +145,10 @@ namespace BeltFlo.Forms
             int    max = _recent.Max(r => r.raw);
 
             lblRawVal.Text    = avg.ToString("F0");
-            lblWeightVal.Text = $"{Props.DisplayLoad((avg - Zero) * Span):F1} {Props.LoadUnit}";
+            bool spanReady = _newSpan.HasValue || _cfg.IsCalibrated;
+            lblWeightVal.Text = spanReady
+                ? $"{Props.DisplayLoad((avg - Zero) * Span):F1} {Props.LoadUnit}"
+                : "--";
 
             double tolerance = Math.Max(StableMinCounts, StableFraction * Math.Abs(avg - Zero));
             bool stable = _recent.Count >= 3 && (max - min) <= tolerance;
@@ -204,6 +207,15 @@ namespace BeltFlo.Forms
         {
             if (_mode == RunMode.Weighing) { EndRun("Known weight cancelled."); return; }
             if (_mode != RunMode.Idle || !ModuleReady()) return;
+
+            // A known-weight span without a real zero is meaningless. A zero
+            // measured in this same visit is fine; both can be saved together.
+            if (!_newZero.HasValue && !_cfg.ZeroSetAt.HasValue)
+            {
+                lblStatus.Text = "Zero the empty belt first, then apply the known weight.";
+                return;
+            }
+
             if (!AskNumber(0.1, 100000, 0, 1, $"Known Weight ({Props.LoadUnit})", out double w)) return;
 
             _knownLb = Props.LoadToLb(w);

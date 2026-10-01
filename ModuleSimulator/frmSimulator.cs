@@ -262,14 +262,15 @@ namespace ModuleSimulator
 
             if (_ticks % 2 == 0)
             {
-                // bit0 ScaleOK, bit1 BeltRunning, bit2 Tared, bit3 ReceivingFromPC.
-                // Clearing bit0 is the module diagnosing its own converter or cells,
-                // which the PC app acts on immediately.
+                // bit0 ScaleOK, bit1 BeltRunning, bit2 Tared, bit3 ReceivingFromPC,
+                // bit4 Overload. Match the real ESP32: Tared is only true after a
+                // non-zero zero-count setting has actually arrived from the app.
                 byte flags = 0;
-                if (!chkNotZeroed.Checked)  flags |= 0x04;
+                if (!chkNotZeroed.Checked && Math.Abs(_zeroCounts) > 0.5) flags |= 0x04;
                 if (!chkScaleFault.Checked) flags |= 0x01;
                 if (sensedInPerSec > 0)     flags |= 0x02;
                 if (ReceivingFromPc)        flags |= 0x08;
+                if (chkOverload.Checked)    flags |= 0x10;
 
                 uint cumLbX10  = unchecked((uint)(long)(_cumLb * 10.0));
                 uint cumPulses = unchecked((uint)(long)_cumPulses);
@@ -286,6 +287,11 @@ namespace ModuleSimulator
             if (chkScaleFault.Checked)
             {
                 lblStatus.Text      = "Sending ScaleOK = 0 — app should show NO SCALE now";
+                lblStatus.ForeColor = System.Drawing.Color.DarkOrange;
+            }
+            else if (chkOverload.Checked)
+            {
+                lblStatus.Text      = "Sending Overload = 1 — app should stop trusting the scale";
                 lblStatus.ForeColor = System.Drawing.Color.DarkOrange;
             }
             else if (chkBeltSensorDead.Checked)

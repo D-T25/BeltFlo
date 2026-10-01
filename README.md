@@ -1,6 +1,6 @@
 # BeltFlo
 
-> **Work in progress — not ready for field use.** The PC app runs and has been tested against simulators, but key setup screens are missing, the module firmware has not been converted from YieldFlo, and the manual still describes YieldFlo. See [Status](#status).
+> **Work in progress — not ready for field use.** The PC app runs and has been tested against simulators, and the first ESP32 conveyor-firmware conversion now compiles, but key setup screens and hardware validation are still missing and the manual still describes YieldFlo. See [Status](#status).
 
 BeltFlo is a yield monitor for root-crop harvesters — potatoes, sugar beets, carrots, onions — that works alongside [AgOpenGPS](https://github.com/AgOpenGPS-Official/AgOpenGPS). It weighs the crop on a conveyor with load cells, maps yield across the field, and keeps a weight for every truck load so certified ticket weights can correct the map.
 

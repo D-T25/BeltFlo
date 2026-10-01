@@ -25,11 +25,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
-
       - name: Restore packages
-        run: nuget restore BeltFlo.sln
+        run: dotnet restore BeltFlo.sln
 
       - name: Build Release
         run: dotnet build BeltFlo.sln -c Release --no-restore
@@ -38,3 +35,10 @@ jobs:
         shell: pwsh
         run: |
           Get-ChildItem BeltFloApp -Recurse | Select-Object FullName, Length
+
+      - name: Upload BeltFlo application
+        uses: actions/upload-artifact@v4
+        with:
+          name: BeltFlo-Windows-Release
+          path: BeltFloApp/**
+          if-no-files-found: error

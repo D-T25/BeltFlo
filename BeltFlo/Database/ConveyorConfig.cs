@@ -22,5 +22,17 @@ namespace BeltFlo.Database
         public double BeltStopTimeoutS { get; set; } = 2.0;
         public int DelaySec { get; set; } = 10;         // digging-to-scale delay
         public DateTime CreatedAt { get; set; }
+
+        /// <summary>
+        /// True only after a real zero and span have been established. New profiles
+        /// use 1 lb/count as a database placeholder; that value must never be sent
+        /// to the module as a usable calibration.
+        /// </summary>
+        public bool IsCalibrated =>
+            ZeroSetAt.HasValue
+            && !double.IsNaN(SpanLbPerCount)
+            && !double.IsInfinity(SpanLbPerCount)
+            && Math.Abs(SpanLbPerCount) > 1e-9
+            && Math.Abs(Math.Abs(SpanLbPerCount) - 1.0) > 1e-6;
     }
 }

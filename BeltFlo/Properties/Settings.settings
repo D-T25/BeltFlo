@@ -55,6 +55,9 @@
     <Setting Name="AutoResumePause" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="TruckFullWarningLb" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
     <Setting Name="MiniFormX" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">-1</Value>
     </Setting>

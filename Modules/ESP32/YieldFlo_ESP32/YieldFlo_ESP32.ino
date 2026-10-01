@@ -1,4 +1,3 @@
-#include "src/ESP2SOTA_RC/index_html.h"
 #include "src/ESP2SOTA_RC/ESP2SOTA_RC.h" // modified from https://github.com/pangodream/ESP2SOTA
 
 #include <WiFi.h>
@@ -71,7 +70,7 @@ float PreviousIntegrationLb = 0.0f;
 bool HaveIntegrationWeight = false;
 
 // ISR forward declaration. Arduino does not reliably auto-prototype IRAM_ATTR.
-void IRAM_ATTR onRPMedge();
+void onRPMedge();
 
 // -----------------------------------------------------------------------------
 // Settings received from BeltFlo PC app (PGN 40011)

@@ -133,5 +133,6 @@ The running firmware identifies itself as **BeltFlo_ESP32**. Existing communicat
 - Belt pulse GPIO remains fixed at the old RPM input (GPIO 35) in the portal.
 - The WiFi and firmware-update sub-pages still come from the current YieldFlo
   files; their page titles may still say YieldFlo until the cosmetic rename pass.
-- This code has been protocol-checked against the current BeltFlo source, but it
-  has not yet been compiled on the target Arduino toolchain or tested on hardware.
+- This code has been protocol-checked against the current BeltFlo source and
+  compiles in CI with ESP32 Arduino core 3.3.7, Ethernet_Generic 2.8.1 and the
+  SparkFun NAU7802 library 1.0.6. It has not yet been tested on the physical YF1/NAU7802 hardware.

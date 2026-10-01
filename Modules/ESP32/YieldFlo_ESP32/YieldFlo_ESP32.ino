@@ -18,7 +18,7 @@
 // BeltFlo conveyor module, based on the YieldFlo ESP32 firmware.
 // Board: DOIT ESP32 DEVKIT V1 / YF1 ESP32 hardware.
 #define InoDescription "BeltFlo_ESP32"
-#define InoID 29096         // firmware version, DDMMY -> 2026-09-29
+#define InoID 30096         // firmware version, DDMMY -> 2026-09-30
 #define StructVersion 5     // EEPROM layout unchanged from current YieldFlo firmware
 
 // Comm modes

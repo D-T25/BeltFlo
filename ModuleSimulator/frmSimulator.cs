@@ -263,10 +263,11 @@ namespace ModuleSimulator
             if (_ticks % 2 == 0)
             {
                 // bit0 ScaleOK, bit1 BeltRunning, bit2 Tared, bit3 ReceivingFromPC,
-                // bit4 Overload. Match the real ESP32: Tared is only true after a
-                // non-zero zero-count setting has actually arrived from the app.
+                // bit4 Overload. Match the real ESP32: PGN 40011 has no separate
+                // zero-valid bit, so the app's non-zero calibrated span means the
+                // zero in that same settings block is intentional too.
                 byte flags = 0;
-                if (!chkNotZeroed.Checked && Math.Abs(_zeroCounts) > 0.5) flags |= 0x04;
+                if (!chkNotZeroed.Checked && Math.Abs(_spanLbPerCount) > 1e-9) flags |= 0x04;
                 if (!chkScaleFault.Checked) flags |= 0x01;
                 if (sensedInPerSec > 0)     flags |= 0x02;
                 if (ReceivingFromPc)        flags |= 0x08;

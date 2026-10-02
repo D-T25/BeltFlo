@@ -29,6 +29,7 @@ namespace BeltFlo.Forms
             this.lblReportAvgMoist = new System.Windows.Forms.Label();
             this.lblReportPoints = new System.Windows.Forms.Label();
             this.btnExportCsv = new System.Windows.Forms.Button();
+            this.btnExportFieldView = new System.Windows.Forms.Button();
             this.btnPrint = new System.Windows.Forms.Button();
             this.btnReportClose = new System.Windows.Forms.Button();
             this.pnlTitle.SuspendLayout();
@@ -70,6 +71,7 @@ namespace BeltFlo.Forms
             this.pnlContent.Controls.Add(this.lblReportAvgMoist);
             this.pnlContent.Controls.Add(this.lblReportPoints);
             this.pnlContent.Controls.Add(this.btnExportCsv);
+            this.pnlContent.Controls.Add(this.btnExportFieldView);
             this.pnlContent.Controls.Add(this.btnPrint);
             this.pnlContent.Controls.Add(this.btnReportClose);
             this.pnlContent.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -183,18 +185,29 @@ namespace BeltFlo.Forms
             this.btnExportCsv.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnExportCsv.Location = new System.Drawing.Point(8, 488);
             this.btnExportCsv.Name = "btnExportCsv";
-            this.btnExportCsv.Size = new System.Drawing.Size(180, 48);
+            this.btnExportCsv.Size = new System.Drawing.Size(128, 48);
             this.btnExportCsv.TabIndex = 8;
             this.btnExportCsv.Text = global::BeltFlo.Language.Lang.lgExportCsv;
             this.btnExportCsv.Click += new System.EventHandler(this.btnExportCsv_Click);
+            //
+            // btnExportFieldView
+            //
+            this.btnExportFieldView.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnExportFieldView.Font = new System.Drawing.Font("Microsoft Sans Serif", 12.5F, System.Drawing.FontStyle.Bold);
+            this.btnExportFieldView.Location = new System.Drawing.Point(144, 488);
+            this.btnExportFieldView.Name = "btnExportFieldView";
+            this.btnExportFieldView.Size = new System.Drawing.Size(128, 48);
+            this.btnExportFieldView.TabIndex = 14;
+            this.btnExportFieldView.Text = global::BeltFlo.Language.Lang.lgExportFieldView;
+            this.btnExportFieldView.Click += new System.EventHandler(this.btnExportFieldView_Click);
             //
             // btnPrint
             //
             this.btnPrint.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnPrint.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
-            this.btnPrint.Location = new System.Drawing.Point(196, 488);
+            this.btnPrint.Location = new System.Drawing.Point(280, 488);
             this.btnPrint.Name = "btnPrint";
-            this.btnPrint.Size = new System.Drawing.Size(170, 48);
+            this.btnPrint.Size = new System.Drawing.Size(128, 48);
             this.btnPrint.TabIndex = 10;
             this.btnPrint.Text = "Print";
             this.btnPrint.Click += new System.EventHandler(this.btnPrint_Click);
@@ -203,9 +216,9 @@ namespace BeltFlo.Forms
             //
             this.btnReportClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnReportClose.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
-            this.btnReportClose.Location = new System.Drawing.Point(374, 488);
+            this.btnReportClose.Location = new System.Drawing.Point(416, 488);
             this.btnReportClose.Name = "btnReportClose";
-            this.btnReportClose.Size = new System.Drawing.Size(178, 48);
+            this.btnReportClose.Size = new System.Drawing.Size(136, 48);
             this.btnReportClose.TabIndex = 9;
             this.btnReportClose.Text = global::BeltFlo.Language.Lang.lgClose;
             this.btnReportClose.Click += new System.EventHandler(this.btnReportClose_Click);
@@ -245,6 +258,7 @@ namespace BeltFlo.Forms
         private System.Windows.Forms.Label   lblReportAvgMoist;
         private System.Windows.Forms.Label   lblReportPoints;
         private System.Windows.Forms.Button  btnExportCsv;
+        private System.Windows.Forms.Button  btnExportFieldView;
         private System.Windows.Forms.Button  btnPrint;
         private System.Windows.Forms.Button  btnReportClose;
     }

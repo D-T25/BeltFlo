@@ -72,7 +72,7 @@ PRAGMA foreign_keys=ON;
 
 -- The harvester. Digging width is row_count × row_spacing_m; there are no headers.
 -- ahead_of_pivot_m follows AgOpenGPS: positive ahead of its pivot, negative behind.
--- scale_location is 'Truck' (weighs straight into the truck) or 'Tank'.
+-- scale_location keeps legacy values: 'Truck' = direct-to-truck, 'Tank' = scale before holding tank.
 CREATE TABLE IF NOT EXISTS profiles (
     id               INTEGER PRIMARY KEY AUTOINCREMENT,
     name             TEXT    NOT NULL,

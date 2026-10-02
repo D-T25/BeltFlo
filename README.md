@@ -12,7 +12,7 @@ It is a fork of [YieldFlo](https://github.com/SK21/YieldFlo) (Development branch
 - **AgOpenGPS** supplies position, speed and section on/off state over UDP.
 - **BeltFlo (PC app)** pairs the weight with where the crop was dug (allowing for the time it takes to reach the scale), subtracts overlapping ground, stores every point in a local SQLite database, and tracks truck loads. It sends the module its calibration and geometry every 2 s; the module confirms it is hearing them, so the app can show the link is working both ways.
 
-Everything is stored in pounds and pounds per acre, and shown as cwt/ac or tons/ac, or t/ha in metric.
+Everything is stored in pounds and pounds per acre. Imperial display can be lb/ac, cwt/ac, or tons/ac; metric display is t/ha.
 
 ## Status
 

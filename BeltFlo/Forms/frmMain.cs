@@ -202,7 +202,7 @@ namespace BeltFlo.Forms
                 message = Lang.lgPausedSectionsOn;
             else if (col != null && col.NoLoadAlarm && Core.ModuleConnected)
                 message = Lang.lgNoLoadOpen;
-            else if (col != null && col.ActiveLoadId > 0
+            else if (col != null && Core.ScaleTracksTruckLoads && col.ActiveLoadId > 0
                      && Properties.Settings.Default.TruckFullWarningLb > 0
                      && col.CurrentLoadLb >= Properties.Settings.Default.TruckFullWarningLb)
                 message = $"Load full — {Props.DisplayLoad(col.CurrentLoadLb):F0} {Props.LoadUnit}";
@@ -249,11 +249,16 @@ namespace BeltFlo.Forms
             // by mistake is hard to miss.
             bool hasLoad = col != null && col.ActiveLoadId > 0;
             bool paused  = col != null && col.IsPaused;
-            string loadWord = Lang.lgLoad.ToUpperInvariant();
+            bool tracksTruckWeight = Core.ScaleTracksTruckLoads;
+            string loadWord = (tracksTruckWeight ? Lang.lgLoad : Lang.lgTruck).ToUpperInvariant();
             lblMoistureTitle.Text = hasLoad ? loadWord + " " + col.ActiveLoadNumber : loadWord;
-            lblMoisture.Text = hasLoad ? Props.DisplayLoad(col.CurrentLoadLb).ToString("F0") : "--";
+            lblMoisture.Text = hasLoad
+                ? (tracksTruckWeight ? Props.DisplayLoad(col.CurrentLoadLb).ToString("F0") : Lang.lgOpen.ToUpperInvariant())
+                : "--";
             lblMoisture.ForeColor = paused ? OkabeIto.Orange : Properties.Settings.Default.DisplayForeColour;
-            lblMoistureUnit.Text = paused ? Lang.lgPause.ToUpperInvariant() : Props.LoadUnit;
+            lblMoistureUnit.Text = paused ? Lang.lgPause.ToUpperInvariant()
+                                 : tracksTruckWeight ? Props.LoadUnit
+                                 : hasLoad ? Lang.lgTicketLog.ToUpperInvariant() : "";
             lblMoistureUnit.ForeColor = paused ? OkabeIto.Orange : Color.White;
 
             // Bar 1 — flow over the scale

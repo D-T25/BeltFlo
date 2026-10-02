@@ -171,31 +171,40 @@ namespace BeltFlo.LogicTests
 
         private static void TestImperialYieldUnits()
         {
-            string oldUnits = BeltFlo.Properties.Settings.Default.Units;
-            string oldYield = BeltFlo.Properties.Settings.Default.YieldUnit;
+            // Settings is an internal generated type in the application assembly.
+            // Use reflection here so the test verifies the real Props path without
+            // changing the production settings class just for the test project.
+            Type settingsType = typeof(Props).Assembly.GetType("BeltFlo.Properties.Settings", true);
+            object settings = settingsType.GetProperty("Default",
+                BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static).GetValue(null);
+            PropertyInfo unitsProp = settingsType.GetProperty("Units");
+            PropertyInfo yieldProp = settingsType.GetProperty("YieldUnit");
+
+            string oldUnits = (string)unitsProp.GetValue(settings);
+            string oldYield = (string)yieldProp.GetValue(settings);
             try
             {
-                BeltFlo.Properties.Settings.Default.Units = "Imperial";
+                unitsProp.SetValue(settings, "Imperial");
 
-                BeltFlo.Properties.Settings.Default.YieldUnit = "lb/ac";
+                yieldProp.SetValue(settings, "lb/ac");
                 Equal("lb/ac", Props.RateUnit, "lb/ac rate label");
                 Equal("lb", Props.MassUnit, "lb mass label");
                 Nearly(20000.0, Props.DisplayRate(20000.0), 1e-9, "lb/ac conversion");
 
-                BeltFlo.Properties.Settings.Default.YieldUnit = "cwt/ac";
+                yieldProp.SetValue(settings, "cwt/ac");
                 Equal("cwt/ac", Props.RateUnit, "cwt/ac rate label");
                 Equal("cwt", Props.MassUnit, "cwt mass label");
                 Nearly(200.0, Props.DisplayRate(20000.0), 1e-9, "cwt/ac conversion");
 
-                BeltFlo.Properties.Settings.Default.YieldUnit = "tons/ac";
+                yieldProp.SetValue(settings, "tons/ac");
                 Equal("tons/ac", Props.RateUnit, "tons/ac rate label");
                 Equal("tons", Props.MassUnit, "tons mass label");
                 Nearly(10.0, Props.DisplayRate(20000.0), 1e-9, "tons/ac conversion");
             }
             finally
             {
-                BeltFlo.Properties.Settings.Default.Units = oldUnits;
-                BeltFlo.Properties.Settings.Default.YieldUnit = oldYield;
+                unitsProp.SetValue(settings, oldUnits);
+                yieldProp.SetValue(settings, oldYield);
             }
         }
 

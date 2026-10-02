@@ -72,13 +72,13 @@ namespace BeltFlo.Classes
                     if (j.fieldId > 0)
                     {
                         var field = Core.Database.Fields.GetAll().Find(f => f.id == j.fieldId);
-                        fieldName = field?.name ?? "";
+                        fieldName = field.id > 0 ? field.name : "";
                     }
 
                     if (j.cropId > 0)
                     {
                         var crop = Core.Database.Crops.GetAll().Find(x => x.id == j.cropId);
-                        cropName = crop?.name ?? "";
+                        cropName = crop.id > 0 ? crop.name : "";
                     }
                     break;
                 }

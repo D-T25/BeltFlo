@@ -326,6 +326,7 @@ Rewrite this job's recorded points and total using the new factor, so the map an
   <data name="lgAvgMoisture" xml:space="preserve"><value>Avg Moisture:</value></data>
   <data name="lgDataPoints" xml:space="preserve"><value>Data Points:</value></data>
   <data name="lgExportCsv" xml:space="preserve"><value>Export CSV</value></data>
+  <data name="lgExportFieldView" xml:space="preserve"><value>FieldView ZIP</value></data>
   <data name="lgExportFailed" xml:space="preserve"><value>Export failed — no data or error.</value></data>
   <data name="lgExported" xml:space="preserve"><value>Exported: {0}</value></data>
 

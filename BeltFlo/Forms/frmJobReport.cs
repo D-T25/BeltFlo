@@ -66,7 +66,7 @@ namespace BeltFlo.Forms
             foreach (Control c in pnlContent.Controls)
             {
                 if (c is Label lbl) lbl.ForeColor = fore;
-                if (c is Button btn && btn != btnExportCsv)
+                if (c is Button btn && btn != btnExportCsv && btn != btnExportFieldView)
                 {
                     btn.BackColor = ctrl;
                     btn.ForeColor = Color.White;
@@ -75,6 +75,8 @@ namespace BeltFlo.Forms
 
             btnExportCsv.BackColor = Color.FromArgb(0, 110, 0);
             btnExportCsv.ForeColor = Color.White;
+            btnExportFieldView.BackColor = Color.FromArgb(0, 110, 0);
+            btnExportFieldView.ForeColor = Color.White;
             btnPrint.BackColor = Color.FromArgb(0, 70, 130);
             btnPrint.ForeColor = Color.White;
         }
@@ -206,6 +208,39 @@ namespace BeltFlo.Forms
                 string path = CsvExporter.ExportJob(_selectedJobId, _selectedName, sfd.FileName);
                 if (path != null)
                     Props.ShowMessage(string.Format(Lang.lgExported, path));
+                else
+                    Props.ShowMessage(Lang.lgExportFailed, "", 3000, true);
+            }
+        }
+
+        private void btnExportFieldView_Click(object sender, EventArgs e)
+        {
+            if (_selectedJobId < 0)
+            {
+                Props.ShowMessage(Lang.lgSelectJobFirst, "", 3000, true);
+                return;
+            }
+
+            string lastFolder = Properties.Settings.Default.LastExportFolder;
+            if (string.IsNullOrEmpty(lastFolder) || !Directory.Exists(lastFolder))
+                lastFolder = Props.ExportFolder;
+
+            using (var sfd = new SaveFileDialog())
+            {
+                sfd.Title            = Lang.lgExportFieldView;
+                sfd.Filter           = "ZIP files (*.zip)|*.zip";
+                sfd.InitialDirectory = lastFolder;
+                string safeName      = string.Concat((_selectedName + "_" + _selectedDate).Split(Path.GetInvalidFileNameChars()));
+                sfd.FileName         = safeName + "_FieldView.zip";
+
+                if (sfd.ShowDialog(this) != DialogResult.OK) return;
+
+                Properties.Settings.Default.LastExportFolder = Path.GetDirectoryName(sfd.FileName);
+                Properties.Settings.Default.Save();
+
+                string exportPath = ShapefileExporter.ExportJob(_selectedJobId, _selectedName, sfd.FileName);
+                if (exportPath != null)
+                    Props.ShowMessage(string.Format(Lang.lgExported, exportPath));
                 else
                     Props.ShowMessage(Lang.lgExportFailed, "", 3000, true);
             }

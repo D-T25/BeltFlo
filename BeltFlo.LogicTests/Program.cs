@@ -1,4 +1,7 @@
 using System;
+using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Reflection;
 using BeltFlo.Classes;
 using BeltFlo.Communication;
@@ -26,6 +29,7 @@ namespace BeltFlo.LogicTests
             Run("Counter wrap preserves delivered mass", TestCounterWrap);
             Run("Yield formula matches lb/ac geometry", TestYieldFormula);
             Run("Metres-to-acres conversion", TestMetresToAcres);
+            Run("FieldView shapefile export writes polygon package", TestShapefileExport);
 
             Console.WriteLine();
             Console.WriteLine($"BeltFlo logic tests: {_passed} passed, {_failed} failed.");
@@ -272,6 +276,91 @@ namespace BeltFlo.LogicTests
         {
             Nearly(1.0, clsYieldCalculator.MetresToAcres(4046.856, 1.0), 1e-12, "one acre");
         }
+
+        private static void TestShapefileExport()
+        {
+            string zipPath = Path.Combine(Path.GetTempPath(),
+                "BeltFlo_shape_test_" + Guid.NewGuid().ToString("N") + ".zip");
+            try
+            {
+                DateTime t = new DateTime(2026, 10, 2, 12, 0, 0, DateTimeKind.Utc);
+                var points = new List<YieldDataPoint>
+                {
+                    new YieldDataPoint
+                    {
+                        Timestamp = t,
+                        Latitude = 48.0000000,
+                        Longitude = -97.0000000,
+                        Speed = 5,
+                        Heading = 0,
+                        YieldRate = 22000,
+                        AcresAccumulated = 1.00,
+                        PoundsInc = 50,
+                        LoadId = -1,
+                        BeltFtMin = 80,
+                        CalRev = 4,
+                        RowsInUse = 12
+                    },
+                    new YieldDataPoint
+                    {
+                        Timestamp = t.AddSeconds(1),
+                        Latitude = 48.0000100,
+                        Longitude = -97.0000000,
+                        Speed = 5,
+                        Heading = 0,
+                        YieldRate = 23000,
+                        AcresAccumulated = 1.01,
+                        PoundsInc = 52,
+                        LoadId = -1,
+                        BeltFtMin = 82,
+                        CalRev = 4,
+                        RowsInUse = 12
+                    }
+                };
+
+                string result = ShapefileExporter.ExportPoints(
+                    zipPath, "Shape Test", points, 6.0, "Test Field", "Sugar Beet");
+                Equal(zipPath, result, "shape export return path");
+                True(File.Exists(zipPath), "shape ZIP exists");
+
+                using (var fs = File.OpenRead(zipPath))
+                using (var zip = new ZipArchive(fs, ZipArchiveMode.Read))
+                {
+                    foreach (string ext in new[] { ".shp", ".shx", ".dbf", ".prj", ".cpg" })
+                        True(zip.GetEntry("Shape Test" + ext) != null, "ZIP contains " + ext);
+
+                    var shpEntry = zip.GetEntry("Shape Test.shp");
+                    byte[] shp = ReadEntry(shpEntry);
+                    True(shp.Length > 108, "SHP has header and record");
+                    Equal(9994, ReadBigEndianInt32(shp, 0), "SHP file code");
+                    Equal(1000, BitConverter.ToInt32(shp, 28), "SHP version");
+                    Equal(5, BitConverter.ToInt32(shp, 32), "SHP polygon type");
+                    Equal(5, BitConverter.ToInt32(shp, 108), "SHP first record polygon type");
+
+                    var dbfEntry = zip.GetEntry("Shape Test.dbf");
+                    byte[] dbf = ReadEntry(dbfEntry);
+                    Equal(1, BitConverter.ToInt32(dbf, 4), "DBF record count");
+                }
+            }
+            finally
+            {
+                try { if (File.Exists(zipPath)) File.Delete(zipPath); } catch { }
+            }
+        }
+
+        private static byte[] ReadEntry(ZipArchiveEntry entry)
+        {
+            if (entry == null) return Array.Empty<byte>();
+            using (var input = entry.Open())
+            using (var ms = new MemoryStream())
+            {
+                input.CopyTo(ms);
+                return ms.ToArray();
+            }
+        }
+
+        private static int ReadBigEndianInt32(byte[] b, int offset) =>
+            (b[offset] << 24) | (b[offset + 1] << 16) | (b[offset + 2] << 8) | b[offset + 3];
 
         private static void True(bool value, string name)
         {

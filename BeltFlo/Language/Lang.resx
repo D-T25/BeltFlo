@@ -275,8 +275,13 @@ Rewrite this job's recorded points and total using the new factor, so the map an
   <data name="lgRowSpacing" xml:space="preserve"><value>Row Spacing:</value></data>
   <data name="lgAheadOfPivot" xml:space="preserve"><value>Ahead of Pivot:</value></data>
   <data name="lgScaleWeighsInto" xml:space="preserve"><value>Scale Weighs Into:</value></data>
+  <data name="lgScalePosition" xml:space="preserve"><value>Scale Position:</value></data>
+  <data name="lgDirectToTruck" xml:space="preserve"><value>Direct to Truck</value></data>
+  <data name="lgBeforeTank" xml:space="preserve"><value>Before Tank</value></data>
   <data name="lgTruck" xml:space="preserve"><value>Truck</value></data>
   <data name="lgTank" xml:space="preserve"><value>Tank</value></data>
+  <data name="lgOpen" xml:space="preserve"><value>Open</value></data>
+  <data name="lgTicketLog" xml:space="preserve"><value>Ticket Log</value></data>
   <data name="lgDiggingWidth" xml:space="preserve"><value>Digging width: {0}</value></data>
   <data name="lgRowsInfo" xml:space="preserve"><value>{0} wide  (harvester has {1} rows)</value></data>
 
@@ -385,5 +390,6 @@ Rewrite this job's recorded points and total using the new factor, so the map an
   <data name="lgDeleteLoadPrompt" xml:space="preserve"><value>Delete load {0} of {1}? Its map points stay in the job.</value></data>
   <data name="lgUpdateCalPrompt" xml:space="preserve"><value>Change the scale span from {0} to {1} ({2})? This load is corrected too, and the module weighs with the new span from now on.</value></data>
   <data name="lgCorrectJobPrompt" xml:space="preserve"><value>Correct {0} by {1}? Every map point and the job total are rescaled to match the tickets.</value></data>
+  <data name="lgUpdateJobCalPrompt" xml:space="preserve"><value>Change the scale span from {0} to {1} ({2}) using the finished job's ticket total? The whole job is corrected too.</value></data>
 
 </root>

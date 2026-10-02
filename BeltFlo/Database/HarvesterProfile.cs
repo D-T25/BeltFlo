@@ -8,8 +8,14 @@ namespace BeltFlo.Database
     /// </summary>
     public class HarvesterProfile
     {
-        public const string Truck = "Truck";
-        public const string Tank  = "Tank";
+        // Stored values stay "Truck"/"Tank" so existing databases keep working.
+        // The UI names describe where the scale sits in the crop path.
+        public const string DirectToTruck     = "Truck";
+        public const string BeforeHoldingTank = "Tank";
+
+        // Legacy aliases retained for early BeltFlo databases/code.
+        public const string Truck = DirectToTruck;
+        public const string Tank  = BeforeHoldingTank;
 
         public int    Id            { get; set; } = -1;
         public string Name          { get; set; } = "";
@@ -21,9 +27,14 @@ namespace BeltFlo.Database
         // positive ahead of the pivot and negative behind it (a towed harvester).
         public double AheadOfPivotM { get; set; } = 0;
 
-        // Where the crop goes after the scale: straight into the truck, or into a
-        // tank that is emptied into trucks. Decides per-load or whole-job correction.
-        public string ScaleLocation { get; set; } = Truck;
+        // Scale arrangement:
+        //   DirectToTruck     - scale pounds belong to the open truck.
+        //   BeforeHoldingTank - field yield is weighed before storage; truck
+        //                       records are tickets only.
+        public string ScaleLocation { get; set; } = DirectToTruck;
+
+        public bool TracksTruckWeight => ScaleLocation == DirectToTruck;
+        public bool IsBeforeHoldingTank => ScaleLocation == BeforeHoldingTank;
 
         /// <summary>Digging width for a job picking up this many rows; 0 means the harvester's own.</summary>
         public double WidthM(int rowsHarvested) => (rowsHarvested > 0 ? rowsHarvested : Rows) * RowSpacingM;

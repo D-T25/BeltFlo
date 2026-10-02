@@ -14,11 +14,9 @@ namespace BeltFlo.Forms
     // Tickets come back from the scale house later, often after the job is
     // finished, so the list holds the loads of every job, oldest first.
     //
-    // When the harvester's scale weighs straight into the truck, a ticket can
-    // correct that load's map points (Correct This Load) and, only when asked, the
-    // scale span (Update Calibration). When it weighs into a tank, one truck does
-    // not match what crossed the scale, so tickets are saved as they come and the
-    // finished job is corrected as a whole against their total (Correct Job).
+    // Direct-to-truck loads own their scale pounds and can be corrected per load.
+    // With a scale before a holding tank, field pounds/map points stay job-level;
+    // truck records are tickets only and their total corrects/calibrates the job.
     //
     // A load's monitor weight is never overwritten. Points are always rescaled
     // from the factor they carry now to the one wanted, so entering a different
@@ -266,10 +264,10 @@ namespace BeltFlo.Forms
             _        => ""
         };
 
-        private bool IsTankJob(int jobId)
+        private bool IsBeforeTankJob(int jobId)
         {
             if (!_jobs.TryGetValue(jobId, out var j)) return false;
-            return Core.Database.Profiles.GetById(j.profileId)?.ScaleLocation == HarvesterProfile.Tank;
+            return Core.Database.Profiles.GetById(j.profileId)?.IsBeforeHoldingTank == true;
         }
 
         private static DateTime Local(DateTime utc) => DateTime.SpecifyKind(utc, DateTimeKind.Utc).ToLocalTime();
@@ -281,9 +279,9 @@ namespace BeltFlo.Forms
             var l = SelectedLoad;
             _ticketLb = l?.CertifiedLb;
 
-            bool has    = l != null;
-            bool active = has && l.Status == LoadRecord.StatusActive;
-            bool tank   = has && IsTankJob(l.JobId);
+            bool has        = l != null;
+            bool active     = has && l.Status == LoadRecord.StatusActive;
+            bool beforeTank = has && IsBeforeTankJob(l.JobId);
 
             if (!has)
             {
@@ -302,12 +300,14 @@ namespace BeltFlo.Forms
 
             lblTicketVal.Enabled   = has && !active;
             btnWeightOnly.Enabled  = has && !active;
-            btnCorrectLoad.Visible = !tank;
-            btnUpdateCal.Visible   = !tank;
-            btnCorrectJob.Visible  = tank;
-            btnCorrectLoad.Enabled = has && !active;
-            btnUpdateCal.Enabled   = has && !active;
-            btnCorrectJob.Enabled  = tank && CanCorrectJob(l.JobId, out _, out _, out _);
+            btnCorrectLoad.Visible = !beforeTank;
+            btnUpdateCal.Visible   = has;
+            btnCorrectJob.Visible  = beforeTank;
+            btnCorrectLoad.Enabled = has && !active && !beforeTank;
+            btnUpdateCal.Enabled   = beforeTank
+                ? CanCorrectJob(l.JobId, out _, out _, out _)
+                : has && !active;
+            btnCorrectJob.Enabled  = beforeTank && CanCorrectJob(l.JobId, out _, out _, out _);
 
             btnReopen.Enabled = has && l.Status == LoadRecord.StatusWaiting
                                 && l.JobId == Core.Collector.ActiveJobId
@@ -316,15 +316,15 @@ namespace BeltFlo.Forms
 
             ShowNumbers(l);
 
-            if (!has)        lblStatus.Text = "";
-            else if (active) lblStatus.Text = "This load is still filling. Finish it with ⏹ before entering its ticket.";
-            else if (tank)
-            {
-                CanCorrectJob(l.JobId, out _, out _, out string why);
-                lblStatus.Text = "The scale weighs into the tank: save each ticket, then correct the finished job against their total."
-                               + (why.Length > 0 ? " " + why : "");
-            }
-            else lblStatus.Text = l.CertifiedLb.HasValue ? "" : "Tap the ticket box to enter the certified weight.";
+            if (!has) lblStatus.Text = "";
+            else if (active && beforeTank)
+                lblStatus.Text = "Truck ticket record is open. The pre-tank scale continues measuring the job independently. Finish this record with ⏹ before entering its ticket.";
+            else if (active)
+                lblStatus.Text = "This load is still filling. Finish it with ⏹ before entering its ticket.";
+            else if (beforeTank)
+                lblStatus.Text = BeforeTankStatus(l.JobId);
+            else
+                lblStatus.Text = l.CertifiedLb.HasValue ? "" : "Tap the ticket box to enter the certified weight.";
         }
 
         private void ShowNumbers(LoadRecord l)
@@ -337,10 +337,26 @@ namespace BeltFlo.Forms
 
             double mon = MonitorLb(l);
             string unit = Props.LoadUnit;
-            lblMonitorVal.Text = $"{Props.DisplayLoad(mon):F0} {unit}";
+            bool beforeTank = IsBeforeTankJob(l.JobId);
+
+            lblMonitorVal.Text = beforeTank ? "--" : $"{Props.DisplayLoad(mon):F0} {unit}";
             lblTicketVal.Text  = _ticketLb.HasValue ? $"{Props.DisplayLoad(_ticketLb.Value):F0} {unit}" : "--";
 
-            if (_ticketLb.HasValue && mon > 0)
+            if (beforeTank)
+            {
+                if (CanCorrectJob(l.JobId, out double ticketsLb, out double jobLb, out _))
+                {
+                    double diff = ticketsLb - jobLb;
+                    lblDiffVal.Text   = $"{Props.DisplayLoad(diff):+0;-0;0} {unit}  {diff / jobLb * 100:+0.0;-0.0;0.0}%";
+                    lblFactorVal.Text = (ticketsLb / jobLb).ToString("F4");
+                }
+                else
+                {
+                    lblDiffVal.Text = "--";
+                    lblFactorVal.Text = "--";
+                }
+            }
+            else if (_ticketLb.HasValue && mon > 0)
             {
                 double diff = _ticketLb.Value - mon;
                 lblDiffVal.Text   = $"{Props.DisplayLoad(diff):+0;-0;0} {unit}  {diff / mon * 100:+0.0;-0.0;0.0}%";
@@ -374,8 +390,8 @@ namespace BeltFlo.Forms
                 if (pad.ShowDialog(this) != DialogResult.OK) return;
                 _ticketLb = Props.LoadToLb(Math.Max(1, pad.ReturnValue));
                 ShowNumbers(l);
-                lblStatus.Text = IsTankJob(l.JobId)
-                    ? "Press Save Weight Only to keep this ticket."
+                lblStatus.Text = IsBeforeTankJob(l.JobId)
+                    ? "Press Save Weight Only to keep this truck ticket. Pre-tank scale pounds stay with the job."
                     : "Save Weight Only keeps the ticket. Correct This Load also rescales the load's map. Update Calibration also changes the span.";
             }
             finally { _padOpen = false; }
@@ -423,12 +439,17 @@ namespace BeltFlo.Forms
             if (l == null) return;
 
             int n = _loadNumbers[l.Id];
-            ApplyToPoints(l, 1.0);   // undoes an earlier correction of this load
-            Core.Database.Loads.SetCertified(l.Id, _ticketLb.Value, FactorFor(l), LoadRecord.StatusWeighed, l.Flag);
+            bool beforeTank = IsBeforeTankJob(l.JobId);
+            if (!beforeTank)
+                ApplyToPoints(l, 1.0);   // undoes an earlier direct-load correction
+            Core.Database.Loads.SetCertified(l.Id, _ticketLb.Value,
+                beforeTank ? 1.0 : FactorFor(l), LoadRecord.StatusWeighed, l.Flag);
             Props.WriteActivityLog($"Load {n} of {JobName(l.JobId)} ticket {_ticketLb.Value:F0} lb saved (monitor {l.MonitorLb:F0} lb)");
 
             LoadList(false);
-            lblStatus.Text = $"Load {n} ticket saved. The map is left as measured.";
+            lblStatus.Text = IsBeforeTankJob(l.JobId)
+                ? $"Truck {n} ticket saved. It is added to this job's ticket total; the pre-tank map is unchanged."
+                : $"Load {n} ticket saved. The map is left as measured.";
         }
 
         private void btnCorrectLoad_Click(object sender, EventArgs e)
@@ -451,6 +472,13 @@ namespace BeltFlo.Forms
         // is not corrected twice.
         private void btnUpdateCal_Click(object sender, EventArgs e)
         {
+            var selected = SelectedLoad;
+            if (selected != null && IsBeforeTankJob(selected.JobId))
+            {
+                UpdateCalibrationFromJob(selected.JobId);
+                return;
+            }
+
             var l = TicketReady(true);
             if (l == null) return;
 
@@ -497,10 +525,11 @@ namespace BeltFlo.Forms
             lblStatus.Text = $"Span {oldSpan:G5} → {newSpan:G5}, calibration revision {revision}. Load {n} corrected by {factor:F4}.";
         }
 
-        // ── Correct Job (scale weighs into a tank) ────────────────────────────
+        // ── Finished-job correction (scale before holding tank) ───────────────
 
-        // Only once the job is finished and every load has its ticket: until the
-        // tank is emptied into the last truck the tickets can't add up to the job.
+        // Only once the job is finished and every truck record has its ticket.
+        // The operator must also empty/clean out the tank so all crop from this
+        // job is represented by those tickets.
         private bool CanCorrectJob(int jobId, out double ticketsLb, out double jobLb, out string why)
         {
             ticketsLb = 0;
@@ -514,6 +543,74 @@ namespace BeltFlo.Forms
 
             ticketsLb = loads.Sum(x => x.CertifiedLb.Value);
             return true;
+        }
+
+        private string BeforeTankStatus(int jobId)
+        {
+            var loads = _loads.Where(x => x.JobId == jobId).ToList();
+            int withTicket = loads.Count(x => x.CertifiedLb.HasValue);
+            double tickets = loads.Where(x => x.CertifiedLb.HasValue).Sum(x => x.CertifiedLb ?? 0);
+            double measured = _jobs.TryGetValue(jobId, out var j) ? j.pounds : 0;
+            string unit = Props.LoadUnit;
+
+            string totals = $"{withTicket}/{loads.Count} tickets = {Props.DisplayLoad(tickets):F0} {unit}; "
+                          + $"job measured {Props.DisplayLoad(measured):F0} {unit}.";
+            CanCorrectJob(jobId, out _, out _, out string why);
+            return "Scale is before the holding tank. Truck tickets are not matched to individual scale pounds. "
+                 + totals + (why.Length > 0 ? " " + why : " Correct Job or Update Calibration can now use the ticket total.");
+        }
+
+        private void UpdateCalibrationFromJob(int jobId)
+        {
+            if (!CanCorrectJob(jobId, out double ticketsLb, out double jobLb, out string why))
+            {
+                lblStatus.Text = why;
+                return;
+            }
+
+            int profileId = _jobs.TryGetValue(jobId, out var j) ? j.profileId : -1;
+            var latest = profileId > 0 ? Core.Database.ConveyorConfigs.GetLatest(profileId) : null;
+            if (latest == null || !latest.IsCalibrated)
+            {
+                lblStatus.Text = "The profile does not have a valid saved scale calibration.";
+                return;
+            }
+
+            double factor = ticketsLb / jobLb;
+            double oldSpan = latest.SpanLbPerCount;
+            double newSpan = oldSpan * factor;
+            using (var dlg = new frmMsgBox(string.Format(Lang.lgUpdateJobCalPrompt,
+                oldSpan.ToString("G5"), newSpan.ToString("G5"),
+                ((factor - 1) * 100).ToString("+0.0;-0.0;0.0") + "%")))
+            {
+                dlg.ShowDialog(this);
+                if (!dlg.Result) return;
+            }
+
+            var edited = new ConveyorConfig
+            {
+                ProfileId        = profileId,
+                ZeroCounts       = latest.ZeroCounts,
+                SpanLbPerCount   = newSpan,
+                ZeroSetAt        = latest.ZeroSetAt,
+                PulsesPerRev     = latest.PulsesPerRev,
+                InchesPerPulse   = latest.InchesPerPulse,
+                SectionLenIn     = latest.SectionLenIn,
+                FlowThresholdLbS = latest.FlowThresholdLbS,
+                BeltStopTimeoutS = latest.BeltStopTimeoutS,
+                DelaySec         = latest.DelaySec
+            };
+            int revision = Core.SaveConveyorConfig(edited);
+
+            var (rows, total) = Core.Database.YieldData.RescaleJob(jobId, factor);
+            Core.Collector.SyncTotalPounds(jobId, total);
+            string name = JobName(jobId);
+            Props.WriteActivityLog($"Span updated from finished job {name}: {oldSpan:G5} → {newSpan:G5} lb/count, "
+                                 + $"factor {factor:F4}, tickets {ticketsLb:F0} lb, measured {jobLb:F0} lb, "
+                                 + $"revision {revision}, {rows} points");
+
+            LoadList(false);
+            lblStatus.Text = $"{name}: span {oldSpan:G5} → {newSpan:G5}, revision {revision}; whole job corrected by {factor:F4}.";
         }
 
         // Measured against the job's current total, so pressing it again after a

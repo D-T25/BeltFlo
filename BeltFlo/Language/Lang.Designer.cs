@@ -266,8 +266,9 @@ namespace BeltFlo.Language
         internal static string lgAvgYield     => Get("lgAvgYield");
         internal static string lgAvgMoisture  => Get("lgAvgMoisture");
         internal static string lgDataPoints   => Get("lgDataPoints");
-        internal static string lgExportCsv    => Get("lgExportCsv");
-        internal static string lgExportFailed => Get("lgExportFailed");
+        internal static string lgExportCsv       => Get("lgExportCsv");
+        internal static string lgExportFieldView => Get("lgExportFieldView");
+        internal static string lgExportFailed    => Get("lgExportFailed");
         internal static string lgExported     => Get("lgExported");
 
         // ── Yield Map ────────────────────────────────────────────────────────

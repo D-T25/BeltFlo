@@ -19,6 +19,7 @@ namespace BeltFlo.LogicTests
             Run("UDP PGN 40011 packet CRCs and layout", TestUdpPacket);
             Run("CAN settings frames reconstruct same block", TestCanFrames);
             Run("Conveyor calibration validity", TestCalibrationValidity);
+            Run("Scale arrangement separates truck weights from pre-tank yield", TestScaleArrangement);
             Run("Scale-data safety gate rejects bad module states", TestScaleDataUsableGate);
             Run("Counter differencing gives pounds, flow and belt speed", TestCounterDifferencing);
             Run("Flow threshold rejects tiny empty-belt increments", TestFlowThreshold);
@@ -149,6 +150,19 @@ namespace BeltFlo.LogicTests
             True(cfg.IsCalibrated, "raw zero count value must not invalidate calibration");
         }
 
+
+        private static void TestScaleArrangement()
+        {
+            var p = new HarvesterProfile { ScaleLocation = HarvesterProfile.DirectToTruck };
+            Equal("Truck", HarvesterProfile.DirectToTruck, "direct value stays database-compatible");
+            Equal("Tank", HarvesterProfile.BeforeHoldingTank, "before-tank value stays database-compatible");
+            True(p.TracksTruckWeight, "direct-to-truck should track truck monitor pounds");
+            False(p.IsBeforeHoldingTank, "direct-to-truck is not pre-tank");
+
+            p.ScaleLocation = HarvesterProfile.BeforeHoldingTank;
+            False(p.TracksTruckWeight, "pre-tank scale must not assign scale pounds to a truck");
+            True(p.IsBeforeHoldingTank, "pre-tank arrangement should be recognized");
+        }
 
         private static void TestScaleDataUsableGate()
         {

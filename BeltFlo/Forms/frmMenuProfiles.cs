@@ -23,7 +23,7 @@ namespace BeltFlo.Forms
         private int    _rows          = 4;
         private double _spacingM      = 0.9144;
         private double _aheadOfPivotM = 0;
-        private string _scaleLocation = HarvesterProfile.Truck;
+        private string _scaleLocation = HarvesterProfile.DirectToTruck;
 
         private const double M_PER_IN = 0.0254;
         private const double M_PER_FT = 0.3048;
@@ -156,9 +156,9 @@ namespace BeltFlo.Forms
             lblPivotVal.Text    = PivotToDisplay(_aheadOfPivotM).ToString(Props.IsMetric ? "F2" : "F1");
             lblPivotUnit.Text   = PivotUnit;
 
-            bool tank = _scaleLocation == HarvesterProfile.Tank;
-            btnTruck.BackColor = tank ? InactiveColour : ActiveColour;
-            btnTank.BackColor  = tank ? ActiveColour   : InactiveColour;
+            bool beforeTank = _scaleLocation == HarvesterProfile.BeforeHoldingTank;
+            btnTruck.BackColor = beforeTank ? InactiveColour : ActiveColour;
+            btnTank.BackColor  = beforeTank ? ActiveColour   : InactiveColour;
 
             lblWidth.Text = string.Format(Lang.lgDiggingWidth, WidthText(_rows * _spacingM));
         }
@@ -213,8 +213,8 @@ namespace BeltFlo.Forms
             }
         }
 
-        private void btnTruck_Click(object sender, EventArgs e) { _scaleLocation = HarvesterProfile.Truck; ShowValues(); }
-        private void btnTank_Click(object sender, EventArgs e)  { _scaleLocation = HarvesterProfile.Tank;  ShowValues(); }
+        private void btnTruck_Click(object sender, EventArgs e) { _scaleLocation = HarvesterProfile.DirectToTruck; ShowValues(); }
+        private void btnTank_Click(object sender, EventArgs e)  { _scaleLocation = HarvesterProfile.BeforeHoldingTank;  ShowValues(); }
 
         private void btnNew_Click(object sender, EventArgs e) => ClearEdit();
 

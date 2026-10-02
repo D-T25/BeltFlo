@@ -23,6 +23,7 @@ namespace BeltFlo.LogicTests
             Run("CAN settings frames reconstruct same block", TestCanFrames);
             Run("Conveyor calibration validity", TestCalibrationValidity);
             Run("Scale arrangement separates truck weights from pre-tank yield", TestScaleArrangement);
+            Run("Imperial display supports lb cwt and tons per acre", TestImperialYieldUnits);
             Run("Scale-data safety gate rejects bad module states", TestScaleDataUsableGate);
             Run("Counter differencing gives pounds, flow and belt speed", TestCounterDifferencing);
             Run("Flow threshold rejects tiny empty-belt increments", TestFlowThreshold);
@@ -166,6 +167,36 @@ namespace BeltFlo.LogicTests
             p.ScaleLocation = HarvesterProfile.BeforeHoldingTank;
             False(p.TracksTruckWeight, "pre-tank scale must not assign scale pounds to a truck");
             True(p.IsBeforeHoldingTank, "pre-tank arrangement should be recognized");
+        }
+
+        private static void TestImperialYieldUnits()
+        {
+            string oldUnits = BeltFlo.Properties.Settings.Default.Units;
+            string oldYield = BeltFlo.Properties.Settings.Default.YieldUnit;
+            try
+            {
+                BeltFlo.Properties.Settings.Default.Units = "Imperial";
+
+                BeltFlo.Properties.Settings.Default.YieldUnit = "lb/ac";
+                Equal("lb/ac", Props.RateUnit, "lb/ac rate label");
+                Equal("lb", Props.MassUnit, "lb mass label");
+                Nearly(20000.0, Props.DisplayRate(20000.0), 1e-9, "lb/ac conversion");
+
+                BeltFlo.Properties.Settings.Default.YieldUnit = "cwt/ac";
+                Equal("cwt/ac", Props.RateUnit, "cwt/ac rate label");
+                Equal("cwt", Props.MassUnit, "cwt mass label");
+                Nearly(200.0, Props.DisplayRate(20000.0), 1e-9, "cwt/ac conversion");
+
+                BeltFlo.Properties.Settings.Default.YieldUnit = "tons/ac";
+                Equal("tons/ac", Props.RateUnit, "tons/ac rate label");
+                Equal("tons", Props.MassUnit, "tons mass label");
+                Nearly(10.0, Props.DisplayRate(20000.0), 1e-9, "tons/ac conversion");
+            }
+            finally
+            {
+                BeltFlo.Properties.Settings.Default.Units = oldUnits;
+                BeltFlo.Properties.Settings.Default.YieldUnit = oldYield;
+            }
         }
 
         private static void TestScaleDataUsableGate()

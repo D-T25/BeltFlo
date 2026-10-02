@@ -119,16 +119,16 @@ namespace BeltFlo.Forms
             this.lblPivotUnit.Location = new System.Drawing.Point(364, 164); this.lblPivotUnit.AutoSize = false; this.lblPivotUnit.Size = new System.Drawing.Size(60, 32);
             this.lblPivotUnit.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
 
-            // Scale weighs into: truck or tank
-            this.lblScaleLocation.Text     = Lang.lgScaleWeighsInto; this.lblScaleLocation.Font = lf;
-            this.lblScaleLocation.Location = new System.Drawing.Point(8, 206); this.lblScaleLocation.AutoSize = false; this.lblScaleLocation.Size = new System.Drawing.Size(220, 32);
-            this.btnTruck.Text      = Lang.lgTruck; this.btnTruck.Font = bf; this.btnTruck.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            // Scale arrangement: direct to truck, or before an on-machine holding tank.
+            this.lblScaleLocation.Text     = Lang.lgScalePosition; this.lblScaleLocation.Font = lf;
+            this.lblScaleLocation.Location = new System.Drawing.Point(8, 206); this.lblScaleLocation.AutoSize = false; this.lblScaleLocation.Size = new System.Drawing.Size(184, 32);
+            this.btnTruck.Text      = Lang.lgDirectToTruck; this.btnTruck.Font = bf; this.btnTruck.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnTruck.FlatAppearance.BorderSize = 0;
-            this.btnTruck.Location  = new System.Drawing.Point(236, 204); this.btnTruck.Size = new System.Drawing.Size(150, 36);
+            this.btnTruck.Location  = new System.Drawing.Point(200, 204); this.btnTruck.Size = new System.Drawing.Size(165, 36);
             this.btnTruck.Click    += new System.EventHandler(this.btnTruck_Click);
-            this.btnTank.Text       = Lang.lgTank; this.btnTank.Font = bf; this.btnTank.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnTank.Text       = Lang.lgBeforeTank; this.btnTank.Font = bf; this.btnTank.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnTank.FlatAppearance.BorderSize = 0;
-            this.btnTank.Location   = new System.Drawing.Point(396, 204); this.btnTank.Size = new System.Drawing.Size(150, 36);
+            this.btnTank.Location   = new System.Drawing.Point(373, 204); this.btnTank.Size = new System.Drawing.Size(173, 36);
             this.btnTank.Click     += new System.EventHandler(this.btnTank_Click);
 
             // Resulting digging width

@@ -29,6 +29,7 @@ Everything is stored in pounds and pounds per acre, and shown as cwt/ac or tons/
 - Conveyor Setup for belt travel per pulse, measured belt turn, weighed-section length, delay and thresholds
 - Scale Calibration with full-belt empty zero and stopped known-weight span calibration
 - Loads screen with certified tickets: per-load correction for direct-to-truck scales, or whole-job ticket-total correction/calibration for a scale before the holding tank
+- Reports export CSV plus a zipped WGS84 polygon shapefile yield map for FieldView/GIS Imported Map workflows
 - "No load open" and truck-full alarms only when the scale feeds the truck directly; pause/sections alarm in either arrangement
 - Root-crop run screen showing yield, current truck load, flow, belt speed and module/scale status
 

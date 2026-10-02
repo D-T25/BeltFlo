@@ -10,4 +10,8 @@
   <ItemGroup>
     <ProjectReference Include="..\BeltFlo\BeltFlo.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
 </Project>

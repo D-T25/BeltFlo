@@ -4,7 +4,7 @@
 
 BeltFlo is a conveyor-based yield monitor for root-crop harvesters such as potatoes, sugar beets, carrots, and onions. It works alongside AgOpenGPS (AOG), weighs crop on a conveyor section with load cells, and maps yield across the field. A direct-to-truck scale can also weigh each truck load; a scale mounted before a holding tank keeps truck tickets separately and uses their total to check or correct the job.
 
-BeltFlo stores weight internally in pounds and yield in pounds per acre. Display units can be changed to **cwt/ac**, **tons/ac**, or **t/ha** without changing the stored data.
+BeltFlo stores weight internally in pounds and yield in pounds per acre. Display units can be changed to **lb/ac**, **cwt/ac**, **tons/ac**, or **t/ha** without changing the stored data.
 
 ---
 
@@ -124,7 +124,7 @@ The main screen is the normal operating screen during harvest.
 
 | Display | Meaning |
 |---|---|
-| **YIELD** | Current smoothed yield in cwt/ac, tons/ac, or t/ha |
+| **YIELD** | Current smoothed yield in lb/ac, cwt/ac, tons/ac, or t/ha |
 | **LOAD n / TRUCK n** | **Direct to Truck:** live load weight. **Before Tank:** shows which truck ticket record is open; scale pounds continue to the job, not that truck. |
 | **Flow bar** | Crop flow over the scale in lb/min or kg/min |
 | **Belt bar** | Conveyor belt speed in ft/min or m/min |
@@ -564,9 +564,7 @@ Select a job and press **Print** to print the report summary.
 
 ### Units
 
-Choose **Imperial** or **Metric**.
-
-Imperial yield can be displayed as **cwt/ac** or **tons/ac**. Metric yield is displayed as **t/ha**.
+Choose **Imperial** or **Metric**. When Imperial is selected, choose the yield display unit: **lb/ac**, **cwt/ac**, or **tons/ac**. Metric yield is displayed as **t/ha**.
 
 Truck/load ticket entry is shown in:
 

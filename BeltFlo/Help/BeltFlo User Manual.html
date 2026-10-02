@@ -972,6 +972,28 @@ reports.</p>
 <h3 id="csv-export">CSV Export</h3>
 <p>Select a job and press <strong>Export CSV</strong> to save the job's
 data to a CSV file. The last export folder is remembered.</p>
+<h3 id="fieldview-zip-shapefile-export">FieldView ZIP / Shapefile Export</h3>
+<p>Select a job and press <strong>FieldView ZIP</strong> to create one
+<code>.zip</code> file containing:</p>
+<ul>
+<li><code>.shp</code> - polygon swath geometry,</li>
+<li><code>.shx</code> - shapefile index,</li>
+<li><code>.dbf</code> - yield and BeltFlo attributes,</li>
+<li><code>.prj</code> - WGS 84 / EPSG:4326 projection,</li>
+<li><code>.cpg</code> - DBF text encoding,</li>
+<li>a short README describing the fields.</li>
+</ul>
+<p>The polygons use the same pass-break rules and digging-width ribbon
+geometry as BeltFlo's yield map. Useful DBF fields include
+<strong>YLD_LBAC</strong>, <strong>YLD_KGHA</strong>,
+<strong>WIDTH_M</strong>, <strong>POUNDS</strong>,
+<strong>LOAD_ID</strong>, <strong>CAL_REV</strong>,
+<strong>ROWS</strong>, job, field, and crop.</p>
+<p>For Climate FieldView, upload the ZIP at <strong>FieldView.com -&gt;
+Data -&gt; Upload &amp; Import</strong> and use it as an
+<strong>Imported Map</strong>. It is a spatial yield-map layer; it is
+not a native combine harvest-data file and should not be expected to
+populate every native FieldView Harvest/Yield Analysis feature.</p>
 <h3 id="print">Print</h3>
 <p>Select a job and press <strong>Print</strong> to print the report
 summary.</p>

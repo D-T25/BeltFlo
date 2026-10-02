@@ -570,14 +570,24 @@ namespace BeltFlo.Forms
 
             int profileId = _jobs.TryGetValue(jobId, out var j) ? j.profileId : -1;
             var latest = profileId > 0 ? Core.Database.ConveyorConfigs.GetLatest(profileId) : null;
-            if (latest == null || !latest.IsCalibrated)
+
+            // Work from the calibration the job was actually weighed with, just as
+            // direct-load calibration does. Calibration cannot be changed while a
+            // job is running, so any truck record from this job carries that
+            // revision. Using latest.Span here could double-correct an old job after
+            // the profile had already been recalibrated for a later job.
+            int jobCalRev = _loads.Where(x => x.JobId == jobId)
+                                  .Select(x => x.CalRev)
+                                  .FirstOrDefault(x => x > 0);
+            var weighedWith = jobCalRev > 0 ? Core.Database.ConveyorConfigs.GetById(jobCalRev) : null;
+            if (latest == null || weighedWith == null || !weighedWith.IsCalibrated)
             {
-                lblStatus.Text = "The profile does not have a valid saved scale calibration.";
+                lblStatus.Text = "The calibration this job was weighed with is not on record, so the span can't be updated.";
                 return;
             }
 
             double factor = ticketsLb / jobLb;
-            double oldSpan = latest.SpanLbPerCount;
+            double oldSpan = weighedWith.SpanLbPerCount;
             double newSpan = oldSpan * factor;
             using (var dlg = new frmMsgBox(string.Format(Lang.lgUpdateJobCalPrompt,
                 oldSpan.ToString("G5"), newSpan.ToString("G5"),

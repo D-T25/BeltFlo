@@ -36,6 +36,10 @@
     </Content>
   </ItemGroup>
 
+  <ItemGroup>
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
   <!-- NuGet packages -->
   <ItemGroup>
     <PackageReference Include="System.Data.SQLite" Version="1.0.119.0" />

@@ -2,7 +2,7 @@
 
 > **Work in progress — not ready for field use.** The PC app now includes the conveyor/profile/calibration/load workflows and builds in CI, and the first ESP32 conveyor firmware compiles. Physical YF1/NAU7802 validation is still required before field use. See [Status](#status).
 
-BeltFlo is a yield monitor for root-crop harvesters — potatoes, sugar beets, carrots, onions — that works alongside [AgOpenGPS](https://github.com/AgOpenGPS-Official/AgOpenGPS). It weighs the crop on a conveyor with load cells, maps yield across the field, and keeps a weight for every truck load so certified ticket weights can correct the map.
+BeltFlo is a yield monitor for root-crop harvesters — potatoes, sugar beets, carrots, onions — that works alongside [AgOpenGPS](https://github.com/AgOpenGPS-Official/AgOpenGPS). It weighs crop on a conveyor and maps yield across the field. Direct-to-truck scales can also weigh each truck; a scale before a holding tank keeps truck tickets separately and compares their total with the measured job.
 
 It is a fork of [YieldFlo](https://github.com/SK21/YieldFlo) (Development branch, September 2026), the grain yield monitor. The GPS, CAN, field, map and job code comes from YieldFlo; the grain sensing and calibration were removed.
 
@@ -20,16 +20,16 @@ Everything is stored in pounds and pounds per acre, and shown as cwt/ac or tons/
 
 - Conveyor data from the module over UDP and CAN, with scale, zero, overload and dead-belt-sensor checks on the status bar
 - Settings sent to the module, and a two-way link check on the Module status light
-- Jobs, truck loads (▶ start, ⏹ finish), and map points tagged with their load
+- Jobs and truck records (▶ start, ⏹ finish); direct-to-truck map points are tagged to loads, while pre-tank map points stay job-level
 - ⏸ Pause — stops all counting, for cleaning the belt or clearing a jam — with an optional auto-resume when sections come on, or an alarm if it is off
 - Weight below an empty-belt threshold is not counted
 - Overlap compensation, so a short last pass needs no row adjustment
 - Calibration revisions recorded on every point and load, so a later span change can rescale earlier data
-- Harvester profiles with rows, row spacing, digging offset and truck/tank scale location
+- Harvester profiles with rows, row spacing, digging offset and **Direct to Truck / Before Tank** scale arrangement
 - Conveyor Setup for belt travel per pulse, measured belt turn, weighed-section length, delay and thresholds
 - Scale Calibration with full-belt empty zero and stopped known-weight span calibration
-- Loads screen with certified tickets, per-load correction, whole-job tank correction and optional calibration update
-- "No load open" alarm, pause/sections alarm and configurable truck-full warning
+- Loads screen with certified tickets: per-load correction for direct-to-truck scales, or whole-job ticket-total correction/calibration for a scale before the holding tank
+- "No load open" and truck-full alarms only when the scale feeds the truck directly; pause/sections alarm in either arrangement
 - Root-crop run screen showing yield, current truck load, flow, belt speed and module/scale status
 
 **Still to do before field use:**

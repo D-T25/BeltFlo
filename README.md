@@ -1,6 +1,6 @@
 # BeltFlo
 
-> **Work in progress — not ready for field use.** The PC app now includes the conveyor/profile/calibration/load workflows and builds in CI, and the first ESP32 conveyor firmware compiles. Physical YF1/NAU7802 validation and documentation are still required before field use. See [Status](#status).
+> **Work in progress — not ready for field use.** The PC app now includes the conveyor/profile/calibration/load workflows and builds in CI, and the first ESP32 conveyor firmware compiles. Physical YF1/NAU7802 validation is still required before field use. See [Status](#status).
 
 BeltFlo is a yield monitor for root-crop harvesters — potatoes, sugar beets, carrots, onions — that works alongside [AgOpenGPS](https://github.com/AgOpenGPS-Official/AgOpenGPS). It weighs the crop on a conveyor with load cells, maps yield across the field, and keeps a weight for every truck load so certified ticket weights can correct the map.
 
@@ -35,7 +35,7 @@ Everything is stored in pounds and pounds per acre, and shown as cwt/ac or tons/
 **Still to do before field use:**
 
 - **Hardware validation of the ESP32 module firmware.** The first BeltFlo conversion builds for ESP32 core 3.3.7 and implements NAU7802 weighing, belt pulses, PGN 40010/40011 UDP, and BeltFlo CAN frames. It still needs bench and field testing on the YF1/NAU7802 hardware.
-- **Documentation.** The user manual still describes YieldFlo, and there is no diagnostic log guide yet.
+- **Documentation follow-up.** The user manual now covers the current BeltFlo workflow; hardware-validation findings and a deeper diagnostic-log guide still need to be added.
 - Translations for the new BeltFlo text (the other seven languages fall back to English)
 
 ## Repository layout

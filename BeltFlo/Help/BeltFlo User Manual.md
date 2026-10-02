@@ -537,6 +537,21 @@ The report screen shows saved jobs and summarizes:
 
 Select a job and press **Export CSV** to save the job's data to a CSV file. The last export folder is remembered.
 
+### FieldView ZIP / Shapefile Export
+
+Select a job and press **FieldView ZIP** to create one `.zip` file containing:
+
+- `.shp` — polygon swath geometry,
+- `.shx` — shapefile index,
+- `.dbf` — yield and BeltFlo attributes,
+- `.prj` — WGS 84 / EPSG:4326 projection,
+- `.cpg` — DBF text encoding,
+- a short README describing the fields.
+
+The polygons use the same pass-break rules and digging-width ribbon geometry as BeltFlo's yield map. Useful DBF fields include **YLD_LBAC**, **YLD_KGHA**, **WIDTH_M**, **POUNDS**, **LOAD_ID**, **CAL_REV**, **ROWS**, job, field, and crop.
+
+For Climate FieldView, upload the ZIP at **FieldView.com -> Data -> Upload & Import** and use it as an **Imported Map**. It is a spatial yield-map layer; it is not a native combine harvest-data file and should not be expected to populate every native FieldView Harvest/Yield Analysis feature.
+
 ### Print
 
 Select a job and press **Print** to print the report summary.

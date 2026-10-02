@@ -213,8 +213,13 @@ namespace BeltFlo.Language
         internal static string lgRowSpacing         => Get("lgRowSpacing");
         internal static string lgAheadOfPivot       => Get("lgAheadOfPivot");
         internal static string lgScaleWeighsInto    => Get("lgScaleWeighsInto");
+        internal static string lgScalePosition      => Get("lgScalePosition");
+        internal static string lgDirectToTruck      => Get("lgDirectToTruck");
+        internal static string lgBeforeTank         => Get("lgBeforeTank");
         internal static string lgTruck              => Get("lgTruck");
         internal static string lgTank               => Get("lgTank");
+        internal static string lgOpen               => Get("lgOpen");
+        internal static string lgTicketLog           => Get("lgTicketLog");
         internal static string lgDiggingWidth       => Get("lgDiggingWidth");
         internal static string lgRowsInfo           => Get("lgRowsInfo");
 
@@ -326,5 +331,6 @@ namespace BeltFlo.Language
         internal static string lgDeleteLoadPrompt  => Get("lgDeleteLoadPrompt");
         internal static string lgUpdateCalPrompt   => Get("lgUpdateCalPrompt");
         internal static string lgCorrectJobPrompt  => Get("lgCorrectJobPrompt");
+        internal static string lgUpdateJobCalPrompt => Get("lgUpdateJobCalPrompt");
     }
 }

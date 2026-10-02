@@ -16,6 +16,7 @@ namespace BeltFlo.Forms
         private string _originalCanPort;
         private bool _padOpen;
         private double _truckFullWarningLb;
+        private string _yieldUnit = "cwt/ac";
         private const double KG_PER_LB = 0.45359237;
 
         private static readonly Color ActiveColour = Color.FromArgb(0, 80, 160);
@@ -87,8 +88,15 @@ namespace BeltFlo.Forms
 
         private void LoadCurrentSettings()
         {
-            // Units
-            SetToggle(btnImperial, btnMetric, Properties.Settings.Default.Units == "Imperial");
+            // Unit system + yield display unit. Old/unknown yield-unit values
+            // (including legacy bu/ac) safely migrate to cwt/ac.
+            bool imperial = Properties.Settings.Default.Units != "Metric";
+            SetToggle(btnImperial, btnMetric, imperial);
+            string savedYieldUnit = Properties.Settings.Default.YieldUnit;
+            _yieldUnit = savedYieldUnit == "lb/ac" || savedYieldUnit == "tons/ac" || savedYieldUnit == "cwt/ac"
+                ? savedYieldUnit
+                : "cwt/ac";
+            ShowYieldUnits();
 
             // Network mode
             bool isEthernet = Properties.Settings.Default.ModuleCommType != "CAN";
@@ -162,8 +170,35 @@ namespace BeltFlo.Forms
             inactive.BackColor = firstActive ? InactiveColour : ActiveColour;
         }
 
-        private void btnImperial_Click(object sender, EventArgs e) { SetToggle(btnImperial, btnMetric, true); ShowTruckFull(); }
-        private void btnMetric_Click(object sender, EventArgs e) { SetToggle(btnImperial, btnMetric, false); ShowTruckFull(); }
+        private void ShowYieldUnits()
+        {
+            bool imperial = btnImperial.BackColor == ActiveColour;
+            btnYieldLb.Enabled = imperial;
+            btnYieldCwt.Enabled = imperial;
+            btnYieldTons.Enabled = imperial;
+
+            btnYieldLb.BackColor   = imperial && _yieldUnit == "lb/ac"   ? ActiveColour : InactiveColour;
+            btnYieldCwt.BackColor  = imperial && _yieldUnit == "cwt/ac"  ? ActiveColour : InactiveColour;
+            btnYieldTons.BackColor = imperial && _yieldUnit == "tons/ac" ? ActiveColour : InactiveColour;
+        }
+
+        private void btnImperial_Click(object sender, EventArgs e)
+        {
+            SetToggle(btnImperial, btnMetric, true);
+            ShowYieldUnits();
+            ShowTruckFull();
+        }
+
+        private void btnMetric_Click(object sender, EventArgs e)
+        {
+            SetToggle(btnImperial, btnMetric, false);
+            ShowYieldUnits();
+            ShowTruckFull();
+        }
+
+        private void btnYieldLb_Click(object sender, EventArgs e)   { _yieldUnit = "lb/ac"; ShowYieldUnits(); }
+        private void btnYieldCwt_Click(object sender, EventArgs e)  { _yieldUnit = "cwt/ac"; ShowYieldUnits(); }
+        private void btnYieldTons_Click(object sender, EventArgs e) { _yieldUnit = "tons/ac"; ShowYieldUnits(); }
         private void btnResumeOn_Click(object sender, EventArgs e) => SetToggle(btnResumeOn, btnResumeOff, true);
         private void btnResumeOff_Click(object sender, EventArgs e) => SetToggle(btnResumeOn, btnResumeOff, false);
         private void btnAutoResumeOn_Click(object sender, EventArgs e) => SetToggle(btnAutoResumeOn, btnAutoResumeOff, true);
@@ -212,9 +247,11 @@ namespace BeltFlo.Forms
 
         private void btnSaveSettings_Click(object sender, EventArgs e)
         {
-            // Units
+            // Units. YieldUnit is stored separately from the Imperial/Metric
+            // dimension system so Imperial can display lb/ac, cwt/ac or tons/ac.
             bool isImperial = btnImperial.BackColor == ActiveColour;
             Properties.Settings.Default.Units = isImperial ? "Imperial" : "Metric";
+            Properties.Settings.Default.YieldUnit = _yieldUnit;
 
             // Network / comm type
             bool isEthernet = btnEthernet.BackColor == ActiveColour;

@@ -2,7 +2,7 @@
 
 > **Development build - test before field use.** The BeltFlo PC application and ESP32 firmware build successfully and the application protocol/logic tests pass, but the YF1/NAU7802 hardware still needs full bench and field validation before relying on it for harvest records.
 
-BeltFlo is a conveyor-based yield monitor for root-crop harvesters such as potatoes, sugar beets, carrots, and onions. It works alongside AgOpenGPS (AOG), weighs crop on a conveyor section with load cells, maps yield across the field, and keeps a separate weight for each truck load so certified scale tickets can be used later to correct loads and maps.
+BeltFlo is a conveyor-based yield monitor for root-crop harvesters such as potatoes, sugar beets, carrots, and onions. It works alongside AgOpenGPS (AOG), weighs crop on a conveyor section with load cells, and maps yield across the field. A direct-to-truck scale can also weigh each truck load; a scale mounted before a holding tank keeps truck tickets separately and uses their total to check or correct the job.
 
 BeltFlo stores weight internally in pounds and yield in pounds per acre. Display units can be changed to **cwt/ac**, **tons/ac**, or **t/ha** without changing the stored data.
 
@@ -125,7 +125,7 @@ The main screen is the normal operating screen during harvest.
 | Display | Meaning |
 |---|---|
 | **YIELD** | Current smoothed yield in cwt/ac, tons/ac, or t/ha |
-| **LOAD n** | Current open truck load weight; blank between loads |
+| **LOAD n / TRUCK n** | **Direct to Truck:** live load weight. **Before Tank:** shows which truck ticket record is open; scale pounds continue to the job, not that truck. |
 | **Flow bar** | Crop flow over the scale in lb/min or kg/min |
 | **Belt bar** | Conveyor belt speed in ft/min or m/min |
 | **Area** | Job area |
@@ -141,9 +141,9 @@ These buttons control the **load** and manual counting state. They do not all me
 
 | Button | Action |
 |---|---|
-| **Start** | Opens a new load when no load is open. If BeltFlo is manually paused, it resumes the same load instead. |
-| **Pause** | Stops all job and load counting and stops map point recording. Use for cleaning the belt, clearing a jam, or intentionally dumping material that should not count. |
-| **End/Stop** | Finishes the current truck load and freezes its monitor weight. The job stays active. |
+| **Start** | Opens a new truck record when none is open. Direct-to-truck records collect scale pounds; Before Tank records are ticket/log entries only. If BeltFlo is manually paused, Start resumes instead of opening a new record. |
+| **Pause** | Stops job counting and map point recording. Use for cleaning the belt, clearing a jam, or intentionally running material that should not count. |
+| **End/Stop** | Closes the current truck record. Direct-to-truck freezes its monitor weight; Before Tank simply closes the ticket record. The job stays active. |
 
 ### Normal truck cycle
 
@@ -157,7 +157,7 @@ If the operator presses **Pause**, then presses **Start**, BeltFlo resumes the p
 
 ### Weight between loads
 
-If crop crosses the scale after one load is ended but before the next load is started, that weight can still belong to the overall job, but it is not assigned to a truck load. In **Truck** scale mode, BeltFlo warns about crop flowing with no load open.
+With **Direct to Truck**, crop crossing the scale between truck records still counts to the job but cannot be assigned to a truck, so BeltFlo warns after sustained flow with no load open. With **Before Tank**, scale pounds always belong to the job and truck records are optional for measurement; no no-load or truck-full alarm is generated from the pre-tank scale.
 
 ### Status bar
 
@@ -196,7 +196,7 @@ A profile describes the harvester geometry and how the scale relates to truck lo
 | **Rows** | Physical row count of the harvester |
 | **Row Spacing** | Row spacing in inches or centimetres |
 | **Ahead of Pivot** | AOG pivot-to-digger distance; negative values are valid for a towed implement behind the pivot |
-| **Scale Weighs Into** | **Truck** or **Tank** |
+| **Scale Position** | **Direct to Truck** or **Before Tank** |
 
 ### Harvester width
 
@@ -208,11 +208,15 @@ Example: 6 rows x 36 in = 216 in = 18 ft.
 
 The calculated digging width is shown on the profile screen.
 
-### Truck vs Tank
+### Direct to Truck vs Before Tank
 
-Choose **Truck** when material crossing the scale goes directly into the truck being tracked. Each load can then be corrected against its own certified ticket.
+Choose **Direct to Truck** when crop crossing the scale goes directly into the truck being tracked. BeltFlo assigns those scale pounds and map points to the open load, can warn when crop flows with no load open, and can compare or correct each load from its own certified ticket.
 
-Choose **Tank** when the scale fills an intermediate tank on the harvester and trucks are loaded from that tank. A single truck ticket no longer corresponds exactly to material that crossed the scale during that truck's load period, so BeltFlo saves tickets individually and corrects the finished job from the total of all tickets.
+Choose **Before Tank** when the weighing conveyor is upstream of an on-machine holding tank, for example on the rear scrub elevator of a beet lifter. The scale measures field yield before crop can be stored or mixed. BeltFlo **does not assign those scale pounds or map points to an individual truck**. Truck records are only a ticket log.
+
+After the job is finished and crop belonging to that job has been emptied/cleaned out of the tank, the sum of all truck tickets can correct the whole job and can optionally update the scale span.
+
+In Before Tank mode it does not matter whether the machine unloads stopped, unloads while harvesting, or runs temporarily with an empty tank: the crop was already weighed before the tank.
 
 ### Editing profiles
 
@@ -392,7 +396,7 @@ BeltFlo keeps a load list across jobs. Loads are numbered within each job starti
 | **Diff** | Percent difference between certified and monitor weight |
 | **Status** | Active, waiting for ticket, weighed, or corrected; optional flag is also shown |
 
-The currently filling load updates live on this screen.
+For **Direct to Truck**, the open load's monitor weight updates live. For **Before Tank**, the Monitor column is intentionally blank because a pre-tank scale cannot know which stored crop later went into a particular truck.
 
 ### Starting and ending loads
 
@@ -444,15 +448,19 @@ For direct-to-truck profiles, choose one of the following:
 
 A load's original monitor weight is retained; correction is applied through factors rather than overwriting the original measurement.
 
-### Tank-mode ticket correction
+### Before-Tank ticket correction
 
-If the profile is set to **Tank**, a truck ticket does not directly correspond to one interval of weight over the harvester scale. BeltFlo therefore:
+When **Scale Position = Before Tank**, Start/End still creates numbered truck records so certified tickets stay organized, but those records do not collect scale pounds and yield measurement never depends on whether a truck record is open.
 
-1. saves each truck ticket,
-2. waits until the job is finished,
-3. requires tickets for every load,
-4. sums the tickets,
-5. uses **Correct Job** to rescale the whole job against the ticket total.
+After harvest:
+
+1. Finish the job only after crop belonging to that job has been emptied/cleaned out of the holding tank.
+2. Enter and **Save Weight Only** for every certified truck ticket.
+3. BeltFlo shows the ticket total against the job's measured scale total.
+4. **Correct Job** rescales the entire job and map by `ticket total / measured job total`.
+5. **Update Calibration** does the same whole-job correction and also multiplies the profile's scale span by that factor for future harvesting.
+
+Because the crop was weighed before the holding tank, stopped unloading, unloading while harvesting, and temporary direct pass-through do not require different yield logic.
 
 ---
 
@@ -491,7 +499,7 @@ The yield map displays recorded swaths colored by yield.
 
 ### Map behavior
 
-- Map points are stored with GPS position, yield, load ID, and calibration revision.
+- Map points are stored with GPS position, yield and calibration revision. Direct-to-truck points also carry their truck load ID; Before Tank points remain job-level because truck assignment happens after storage.
 - Swaths are broken when crop flow stops, data gaps are too long, or GPS jumps are too large.
 - Overlap compensation prevents already-harvested ground from being counted again.
 - The mini map follows the vehicle and rotates heading-up while moving.

@@ -63,7 +63,8 @@ namespace BeltFlo.Classes
         public double TotalPounds { get; private set; }
         public double AverageYield => TotalAcres > 0.01 ? TotalPounds / TotalAcres : 0;   // lb/ac
 
-        // The truck being filled. -1 between loads; pounds then go to the job only.
+        // The active truck record. Direct-to-truck profiles also accumulate its
+        // scale weight. Before-holding-tank profiles use it only as a ticket record.
         public int ActiveLoadId { get; private set; } = -1;
         public double CurrentLoadLb { get; private set; }
 
@@ -198,7 +199,7 @@ namespace BeltFlo.Classes
 
             MarkTotalsSaved();
             Core.Database.Jobs.UpdateTotals(ActiveJobId, TotalAcres, TotalPounds);
-            if (ActiveLoadId > 0)
+            if (ActiveLoadId > 0 && Core.ScaleTracksTruckLoads)
                 Core.Database.Loads.UpdateMonitorLb(ActiveLoadId, CurrentLoadLb);
         }
 
@@ -312,7 +313,7 @@ namespace BeltFlo.Classes
             if (ActiveJobId > 0 && Core.Database != null)
             {
                 Core.Database.Jobs.UpdateTotals(ActiveJobId, TotalAcres, TotalPounds);
-                if (ActiveLoadId > 0)
+                if (ActiveLoadId > 0 && Core.ScaleTracksTruckLoads)
                     Core.Database.Loads.UpdateMonitorLb(ActiveLoadId, CurrentLoadLb);
             }
             ActiveJobId   = -1;
@@ -448,15 +449,18 @@ namespace BeltFlo.Classes
         }
 
         /// <summary>
-        /// The truck has left: freezes the monitor weight on the load and waits for
-        /// its ticket. Pounds arriving afterwards go to the job alone until the
-        /// next load is opened.
+        /// Closes the current truck record. Direct-to-truck profiles freeze its
+        /// scale weight. Before-holding-tank profiles intentionally keep monitor
+        /// pounds at zero because the pre-tank scale cannot identify truck weight.
         /// </summary>
         public void FinishLoad()
         {
             if (ActiveLoadId <= 0) return;
             Core.Database?.Loads.Close(ActiveLoadId, CurrentLoadLb);
-            Props.WriteActivityLog("Load " + ActiveLoadNumber + " finished at " + CurrentLoadLb.ToString("0") + " lb (id " + ActiveLoadId + ")");
+            string detail = Core.ScaleTracksTruckLoads
+                ? " at " + CurrentLoadLb.ToString("0") + " lb"
+                : " (ticket record; pre-tank scale continues with job)";
+            Props.WriteActivityLog("Load " + ActiveLoadNumber + " finished" + detail + " (id " + ActiveLoadId + ")");
             ActiveLoadId  = -1;
             CurrentLoadLb = 0;
             ActiveLoadNumber = 0;
@@ -500,8 +504,8 @@ namespace BeltFlo.Classes
             if (!IsRecording && !IsAutoPaused) return;   // manual pause
             if (_scaleFault) return;                     // the module said not to trust this
 
-            TotalPounds       += lb;
-            if (ActiveLoadId > 0)
+            TotalPounds += lb;
+            if (ActiveLoadId > 0 && Core.ScaleTracksTruckLoads)
                 CurrentLoadLb += lb;
             _poundsSinceWrite += lb;
         }
@@ -512,7 +516,7 @@ namespace BeltFlo.Classes
         public void CheckNoLoad(bool flowing)
         {
             bool noLoadFlow = ActiveJobId > 0 && !IsPaused && ActiveLoadId <= 0
-                              && flowing && !Core.ScaleWeighsIntoTank;
+                              && flowing && Core.ScaleTracksTruckLoads;
             if (!noLoadFlow)
             {
                 _noLoadFlowSince = DateTime.MaxValue;
@@ -945,7 +949,9 @@ namespace BeltFlo.Classes
             var point = new YieldDataPoint
             {
                 JobId = ActiveJobId,
-                LoadId = ActiveLoadId,
+                // A truck id is meaningful only when the scale feeds that truck
+                // directly. Pre-tank map points remain job-level.
+                LoadId = Core.ScaleTracksTruckLoads ? ActiveLoadId : -1,
                 Timestamp = pt.Time,
                 Latitude = pt.Lat,
                 Longitude = pt.Lon,

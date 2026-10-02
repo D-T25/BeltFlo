@@ -63,7 +63,10 @@ namespace BeltFlo.Classes
         public static int ActiveRowsHarvested { get; set; } = 0; // the job's rows harvested; 0 = the harvester's own row count
         public static int ActiveCalRev    { get; set; } = -1;   // conveyor_config row the app expects the module to run
         public static int ActiveRowsInUse { get; set; } = 0;    // rows the digging width is worked out from; recorded on every point
-        public static bool ScaleWeighsIntoTank { get; private set; } // the active harvester's scale feeds a tank, not the truck
+        // A scale before a holding tank measures field yield continuously, but
+        // cannot identify which stored crop later goes into an individual truck.
+        public static bool ScaleBeforeHoldingTank { get; private set; }
+        public static bool ScaleTracksTruckLoads => !ScaleBeforeHoldingTank;
         /// <summary>True when the active profile has a real zero and span, not the seeded placeholder.</summary>
         public static bool ActiveScaleCalibrated => _activeConveyor?.IsCalibrated == true;
 
@@ -412,7 +415,7 @@ namespace BeltFlo.Classes
                 ActiveRowsInUse     = rowsHarvested > 0 ? rowsHarvested : profile.Rows;
                 Yield.DiggingWidthM = profile.WidthM(rowsHarvested);
                 Yield.AheadOfPivotM = profile.AheadOfPivotM;
-                ScaleWeighsIntoTank = profile.ScaleLocation == HarvesterProfile.Tank;
+                ScaleBeforeHoldingTank = profile.IsBeforeHoldingTank;
             }
 
             // The conveyor configuration belongs to the machine, not the crop: the

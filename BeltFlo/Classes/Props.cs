@@ -46,8 +46,8 @@ namespace BeltFlo.Classes
         // pounds, so nothing stored depends on a crop constant; every other unit is
         // a display conversion applied on the way out.
         //
-        // Imperial users choose between hundredweight and tons per acre — the two
-        // units potato and beet tickets are written in. Metric is always t/ha.
+        // Internal yield remains lb/ac. Imperial display can be lb/ac, cwt/ac
+        // or tons/ac; metric remains t/ha. No crop/bushel constant is involved.
         private const double LB_PER_CWT = 100.0;
         private const double LB_PER_TON = 2000.0;
         private const double LB_PER_KG  = 2.20462;
@@ -55,17 +55,22 @@ namespace BeltFlo.Classes
         private const double M_PER_FT   = 0.3048;
 
         public static bool IsMetric => Properties.Settings.Default.Units == "Metric";
-        public static bool YieldInTons => Properties.Settings.Default.YieldUnit == "tons/ac";
+        public static bool YieldInPounds => Properties.Settings.Default.YieldUnit == "lb/ac";
+        public static bool YieldInTons   => Properties.Settings.Default.YieldUnit == "tons/ac";
+        public static bool YieldInCwt    => !YieldInPounds && !YieldInTons; // cwt/ac + safe legacy fallback
 
         public static string AreaUnit  => IsMetric ? "ha"   : "ac";
-        public static string MassUnit  => IsMetric ? "t"    : (YieldInTons ? "tons"    : "cwt");
-        public static string RateUnit  => IsMetric ? "t/ha" : (YieldInTons ? "tons/ac" : "cwt/ac");
+        public static string MassUnit  => IsMetric ? "t"    : (YieldInPounds ? "lb" : YieldInTons ? "tons" : "cwt");
+        public static string RateUnit  => IsMetric ? "t/ha" : (YieldInPounds ? "lb/ac" : YieldInTons ? "tons/ac" : "cwt/ac");
         public static string LoadUnit  => IsMetric ? "kg"   : "lb";        // truck loads, in ticket units
         public static string FlowUnit  => IsMetric ? "kg/min" : "lb/min";
         public static string SpeedUnit => IsMetric ? "km/h" : "mph";
         public static string BeltSpeedUnit => IsMetric ? "m/min" : "ft/min";
 
-        private static double LbPerMassUnit => IsMetric ? 1000.0 * LB_PER_KG : (YieldInTons ? LB_PER_TON : LB_PER_CWT);
+        private static double LbPerMassUnit => IsMetric ? 1000.0 * LB_PER_KG
+            : YieldInPounds ? 1.0
+            : YieldInTons ? LB_PER_TON
+            : LB_PER_CWT;
 
         public static double DisplayArea(double acres)      => IsMetric ? acres * HA_PER_AC : acres;
         public static double DisplayMass(double lb)         => lb / LbPerMassUnit;

@@ -30,7 +30,7 @@ Everything is stored in pounds and pounds per acre. Imperial display can be lb/a
 - Scale Calibration with full-belt empty zero and stopped known-weight span calibration
 - Loads screen with certified tickets: per-load correction for direct-to-truck scales, or whole-job ticket-total correction/calibration for a scale before the holding tank
 - Reports export CSV plus a zipped WGS84 polygon shapefile yield map for FieldView/GIS Imported Map workflows
-- Optional custom AgOpenGPS build that paints BeltFlo's delay-corrected live yield directly on the normal AOG field map without changing AOG's section-control overlap logic; the low/high color range is adjustable in BeltFlo Settings
+- Live yield-map integration for **either classic AgOpenGPS or AgOpenWeb**. BeltFlo offers the same delay-corrected packet to both local hosts automatically; custom builds paint the yield colors without changing the section-control detection layer. The low/high color range is adjustable in BeltFlo Settings
 - "No load open" and truck-full alarms only when the scale feeds the truck directly; pause/sections alarm in either arrangement
 - Root-crop run screen showing yield, current truck load, flow, belt speed and module/scale status
 
@@ -50,7 +50,8 @@ Everything is stored in pounds and pounds per acre. Imperial display can be lb/a
 | [`ModuleSimulatorApp/`](ModuleSimulatorApp) | Runnable build of the simulator |
 | [`Modules/ESP32`](Modules/ESP32) | ESP32 module firmware for the YF1 board — first BeltFlo conveyor conversion using NAU7802 load-cell weighing and a belt proximity input, while retaining the YieldFlo WiFi, CAN, Ethernet, web portal and OTA foundation |
 | [`PCBs/YF1`](PCBs/YF1) | KiCad design for the YF1 module board, shared with YieldFlo |
-| [`AOGIntegration/`](AOGIntegration) | BeltFlo live-yield packet integration and build patch for a custom AgOpenGPS main-map yield overlay |
+| [`AOGIntegration/`](AOGIntegration) | Build patch for the classic AgOpenGPS live-yield overlay |
+| [`AgOpenWebIntegration/`](AgOpenWebIntegration) | AgOpenWeb receiver/display patch plus AgOpenWeb → BeltFlo GPS/section bridge |
 
 The module packet layouts are documented in the code: `BeltFlo/Communication/UDPcomm.cs` (module → PC, PGN 40010) and `BeltFlo/Communication/ModuleSettings.cs` (PC → module, PGN 40011).
 

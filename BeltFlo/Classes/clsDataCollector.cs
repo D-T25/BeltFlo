@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using BeltFlo.Communication;
 using BeltFlo.Database;
 using BeltFlo.Language;
 
@@ -973,6 +974,25 @@ namespace BeltFlo.Classes
             _poundsSinceWrite = 0;
 
             Core.LastDataWriteOk = Core.Database?.YieldData.Insert(point) ?? true;
+
+            // Feed the custom AgOpenGPS live-yield layer from the exact same
+            // delay-corrected point written to BeltFlo's database. AOG must not
+            // apply another flow lag: pt already represents where this crop was dug.
+            try
+            {
+                bool passBreak = pt.PassEnd || yieldRate <= 0;
+                Core.UDPaog?.Send(AogYieldPacket.Build(
+                    point,
+                    Core.Yield?.DiggingWidthM ?? 0,
+                    pt.PassStart,
+                    passBreak));
+            }
+            catch (Exception ex)
+            {
+                // Live AOG display is optional; it must never interrupt BeltFlo's
+                // authoritative job/map recording.
+                Props.WriteErrorLog("DataCollector/AOG yield send: " + ex.Message);
+            }
         }
 
         private static double HaversineMetres(double lat1, double lon1, double lat2, double lon2)

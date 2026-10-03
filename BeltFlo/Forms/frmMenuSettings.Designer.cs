@@ -28,6 +28,9 @@ namespace BeltFlo.Forms
             this.btnYieldLb = new System.Windows.Forms.Button();
             this.btnYieldCwt = new System.Windows.Forms.Button();
             this.btnYieldTons = new System.Windows.Forms.Button();
+            this.lblAogYieldRange = new System.Windows.Forms.Label();
+            this.btnYieldLow = new System.Windows.Forms.Button();
+            this.btnYieldHigh = new System.Windows.Forms.Button();
             this.lblNetwork = new System.Windows.Forms.Label();
             this.btnEthernet = new System.Windows.Forms.Button();
             this.btnCAN = new System.Windows.Forms.Button();
@@ -86,6 +89,9 @@ namespace BeltFlo.Forms
             this.pnlContent.Controls.Add(this.btnYieldLb);
             this.pnlContent.Controls.Add(this.btnYieldCwt);
             this.pnlContent.Controls.Add(this.btnYieldTons);
+            this.pnlContent.Controls.Add(this.lblAogYieldRange);
+            this.pnlContent.Controls.Add(this.btnYieldLow);
+            this.pnlContent.Controls.Add(this.btnYieldHigh);
             this.pnlContent.Controls.Add(this.lblNetwork);
             this.pnlContent.Controls.Add(this.btnEthernet);
             this.pnlContent.Controls.Add(this.btnCAN);
@@ -109,14 +115,14 @@ namespace BeltFlo.Forms
             this.pnlContent.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pnlContent.Location = new System.Drawing.Point(2, 50);
             this.pnlContent.Name = "pnlContent";
-            this.pnlContent.Size = new System.Drawing.Size(560, 654);
+            this.pnlContent.Size = new System.Drawing.Size(560, 736);
             this.pnlContent.TabIndex = 1;
             // 
             // lblWifiInfo
             // 
             this.lblWifiInfo.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F);
             this.lblWifiInfo.ForeColor = System.Drawing.Color.Silver;
-            this.lblWifiInfo.Location = new System.Drawing.Point(8, 280);
+            this.lblWifiInfo.Location = new System.Drawing.Point(8, 362);
             this.lblWifiInfo.Name = "lblWifiInfo";
             this.lblWifiInfo.Size = new System.Drawing.Size(544, 72);
             this.lblWifiInfo.TabIndex = 9;
@@ -219,12 +225,52 @@ namespace BeltFlo.Forms
             this.btnYieldTons.Text = global::BeltFlo.Language.Lang.lgTonsPerAc;
             this.btnYieldTons.UseVisualStyleBackColor = false;
             this.btnYieldTons.Click += new System.EventHandler(this.btnYieldTons_Click);
+            //
+            // lblAogYieldRange
+            //
+            this.lblAogYieldRange.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
+            this.lblAogYieldRange.ForeColor = System.Drawing.Color.Silver;
+            this.lblAogYieldRange.Location = new System.Drawing.Point(8, 190);
+            this.lblAogYieldRange.Name = "lblAogYieldRange";
+            this.lblAogYieldRange.Size = new System.Drawing.Size(400, 26);
+            this.lblAogYieldRange.TabIndex = 31;
+            this.lblAogYieldRange.Text = global::BeltFlo.Language.Lang.lgAogYieldRange;
+            //
+            // btnYieldLow
+            //
+            this.btnYieldLow.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.btnYieldLow.FlatAppearance.BorderSize = 0;
+            this.btnYieldLow.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnYieldLow.Font = new System.Drawing.Font("Microsoft Sans Serif", 12.5F, System.Drawing.FontStyle.Bold);
+            this.btnYieldLow.ForeColor = System.Drawing.Color.White;
+            this.btnYieldLow.Location = new System.Drawing.Point(8, 220);
+            this.btnYieldLow.Name = "btnYieldLow";
+            this.btnYieldLow.Size = new System.Drawing.Size(267, 48);
+            this.btnYieldLow.TabIndex = 32;
+            this.btnYieldLow.Text = "Low";
+            this.btnYieldLow.UseVisualStyleBackColor = false;
+            this.btnYieldLow.Click += new System.EventHandler(this.btnYieldLow_Click);
+            //
+            // btnYieldHigh
+            //
+            this.btnYieldHigh.BackColor = System.Drawing.Color.FromArgb(((int)(((byte)(60)))), ((int)(((byte)(60)))), ((int)(((byte)(60)))));
+            this.btnYieldHigh.FlatAppearance.BorderSize = 0;
+            this.btnYieldHigh.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
+            this.btnYieldHigh.Font = new System.Drawing.Font("Microsoft Sans Serif", 12.5F, System.Drawing.FontStyle.Bold);
+            this.btnYieldHigh.ForeColor = System.Drawing.Color.White;
+            this.btnYieldHigh.Location = new System.Drawing.Point(285, 220);
+            this.btnYieldHigh.Name = "btnYieldHigh";
+            this.btnYieldHigh.Size = new System.Drawing.Size(267, 48);
+            this.btnYieldHigh.TabIndex = 33;
+            this.btnYieldHigh.Text = "High";
+            this.btnYieldHigh.UseVisualStyleBackColor = false;
+            this.btnYieldHigh.Click += new System.EventHandler(this.btnYieldHigh_Click);
             // 
             // lblNetwork
             // 
             this.lblNetwork.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.lblNetwork.ForeColor = System.Drawing.Color.Silver;
-            this.lblNetwork.Location = new System.Drawing.Point(8, 190);
+            this.lblNetwork.Location = new System.Drawing.Point(8, 272);
             this.lblNetwork.Name = "lblNetwork";
             this.lblNetwork.Size = new System.Drawing.Size(400, 26);
             this.lblNetwork.TabIndex = 6;
@@ -237,7 +283,7 @@ namespace BeltFlo.Forms
             this.btnEthernet.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnEthernet.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnEthernet.ForeColor = System.Drawing.Color.White;
-            this.btnEthernet.Location = new System.Drawing.Point(8, 220);
+            this.btnEthernet.Location = new System.Drawing.Point(8, 302);
             this.btnEthernet.Name = "btnEthernet";
             this.btnEthernet.Size = new System.Drawing.Size(267, 48);
             this.btnEthernet.TabIndex = 7;
@@ -252,7 +298,7 @@ namespace BeltFlo.Forms
             this.btnCAN.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnCAN.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnCAN.ForeColor = System.Drawing.Color.White;
-            this.btnCAN.Location = new System.Drawing.Point(285, 220);
+            this.btnCAN.Location = new System.Drawing.Point(285, 302);
             this.btnCAN.Name = "btnCAN";
             this.btnCAN.Size = new System.Drawing.Size(267, 48);
             this.btnCAN.TabIndex = 8;
@@ -264,7 +310,7 @@ namespace BeltFlo.Forms
             // 
             this.lblCanDriver.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.lblCanDriver.ForeColor = System.Drawing.Color.Silver;
-            this.lblCanDriver.Location = new System.Drawing.Point(8, 280);
+            this.lblCanDriver.Location = new System.Drawing.Point(8, 362);
             this.lblCanDriver.Name = "lblCanDriver";
             this.lblCanDriver.Size = new System.Drawing.Size(267, 26);
             this.lblCanDriver.TabIndex = 10;
@@ -278,7 +324,7 @@ namespace BeltFlo.Forms
             "SLCAN",
             "InnoMaker",
             "PCAN"});
-            this.cbCanDriver.Location = new System.Drawing.Point(8, 312);
+            this.cbCanDriver.Location = new System.Drawing.Point(8, 394);
             this.cbCanDriver.Name = "cbCanDriver";
             this.cbCanDriver.Size = new System.Drawing.Size(267, 32);
             this.cbCanDriver.TabIndex = 11;
@@ -287,7 +333,7 @@ namespace BeltFlo.Forms
             // 
             this.lblCanPort.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.lblCanPort.ForeColor = System.Drawing.Color.Silver;
-            this.lblCanPort.Location = new System.Drawing.Point(285, 280);
+            this.lblCanPort.Location = new System.Drawing.Point(285, 362);
             this.lblCanPort.Name = "lblCanPort";
             this.lblCanPort.Size = new System.Drawing.Size(267, 26);
             this.lblCanPort.TabIndex = 12;
@@ -297,7 +343,7 @@ namespace BeltFlo.Forms
             // 
             this.cbCanPort.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cbCanPort.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F);
-            this.cbCanPort.Location = new System.Drawing.Point(285, 312);
+            this.cbCanPort.Location = new System.Drawing.Point(285, 394);
             this.cbCanPort.Name = "cbCanPort";
             this.cbCanPort.Size = new System.Drawing.Size(195, 32);
             this.cbCanPort.TabIndex = 13;
@@ -310,7 +356,7 @@ namespace BeltFlo.Forms
             this.btnRescanPorts.Font = new System.Drawing.Font("Segoe UI", 11.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.btnRescanPorts.ForeColor = System.Drawing.Color.White;
             this.btnRescanPorts.Image = ((System.Drawing.Image)(resources.GetObject("btnRescanPorts.Image")));
-            this.btnRescanPorts.Location = new System.Drawing.Point(488, 308);
+            this.btnRescanPorts.Location = new System.Drawing.Point(488, 390);
             this.btnRescanPorts.Name = "btnRescanPorts";
             this.btnRescanPorts.Size = new System.Drawing.Size(64, 40);
             this.btnRescanPorts.TabIndex = 14;
@@ -322,7 +368,7 @@ namespace BeltFlo.Forms
             //
             this.lblCanStatus.Font = new System.Drawing.Font("Microsoft Sans Serif", 11F, System.Drawing.FontStyle.Bold);
             this.lblCanStatus.ForeColor = System.Drawing.Color.Silver;
-            this.lblCanStatus.Location = new System.Drawing.Point(8, 346);
+            this.lblCanStatus.Location = new System.Drawing.Point(8, 428);
             this.lblCanStatus.Name = "lblCanStatus";
             this.lblCanStatus.Size = new System.Drawing.Size(400, 18);
             this.lblCanStatus.TabIndex = 20;
@@ -338,7 +384,7 @@ namespace BeltFlo.Forms
             //
             this.lblResumeJob.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.lblResumeJob.ForeColor = System.Drawing.Color.Silver;
-            this.lblResumeJob.Location = new System.Drawing.Point(8, 364);
+            this.lblResumeJob.Location = new System.Drawing.Point(8, 446);
             this.lblResumeJob.Name = "lblResumeJob";
             this.lblResumeJob.Size = new System.Drawing.Size(400, 26);
             this.lblResumeJob.TabIndex = 15;
@@ -351,7 +397,7 @@ namespace BeltFlo.Forms
             this.btnResumeOn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnResumeOn.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnResumeOn.ForeColor = System.Drawing.Color.White;
-            this.btnResumeOn.Location = new System.Drawing.Point(8, 394);
+            this.btnResumeOn.Location = new System.Drawing.Point(8, 476);
             this.btnResumeOn.Name = "btnResumeOn";
             this.btnResumeOn.Size = new System.Drawing.Size(267, 48);
             this.btnResumeOn.TabIndex = 16;
@@ -366,7 +412,7 @@ namespace BeltFlo.Forms
             this.btnResumeOff.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnResumeOff.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnResumeOff.ForeColor = System.Drawing.Color.White;
-            this.btnResumeOff.Location = new System.Drawing.Point(285, 394);
+            this.btnResumeOff.Location = new System.Drawing.Point(285, 476);
             this.btnResumeOff.Name = "btnResumeOff";
             this.btnResumeOff.Size = new System.Drawing.Size(267, 48);
             this.btnResumeOff.TabIndex = 17;
@@ -378,7 +424,7 @@ namespace BeltFlo.Forms
             //
             this.lblAutoResume.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.lblAutoResume.ForeColor = System.Drawing.Color.Silver;
-            this.lblAutoResume.Location = new System.Drawing.Point(8, 454);
+            this.lblAutoResume.Location = new System.Drawing.Point(8, 536);
             this.lblAutoResume.Name = "lblAutoResume";
             this.lblAutoResume.Size = new System.Drawing.Size(544, 26);
             this.lblAutoResume.TabIndex = 21;
@@ -391,7 +437,7 @@ namespace BeltFlo.Forms
             this.btnAutoResumeOn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnAutoResumeOn.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnAutoResumeOn.ForeColor = System.Drawing.Color.White;
-            this.btnAutoResumeOn.Location = new System.Drawing.Point(8, 484);
+            this.btnAutoResumeOn.Location = new System.Drawing.Point(8, 566);
             this.btnAutoResumeOn.Name = "btnAutoResumeOn";
             this.btnAutoResumeOn.Size = new System.Drawing.Size(267, 48);
             this.btnAutoResumeOn.TabIndex = 22;
@@ -406,7 +452,7 @@ namespace BeltFlo.Forms
             this.btnAutoResumeOff.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnAutoResumeOff.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnAutoResumeOff.ForeColor = System.Drawing.Color.White;
-            this.btnAutoResumeOff.Location = new System.Drawing.Point(285, 484);
+            this.btnAutoResumeOff.Location = new System.Drawing.Point(285, 566);
             this.btnAutoResumeOff.Name = "btnAutoResumeOff";
             this.btnAutoResumeOff.Size = new System.Drawing.Size(267, 48);
             this.btnAutoResumeOff.TabIndex = 23;
@@ -418,7 +464,7 @@ namespace BeltFlo.Forms
             //
             this.lblTruckFull.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.lblTruckFull.ForeColor = System.Drawing.Color.Silver;
-            this.lblTruckFull.Location = new System.Drawing.Point(8, 544);
+            this.lblTruckFull.Location = new System.Drawing.Point(8, 626);
             this.lblTruckFull.Name = "lblTruckFull";
             this.lblTruckFull.Size = new System.Drawing.Size(300, 26);
             this.lblTruckFull.TabIndex = 24;
@@ -430,7 +476,7 @@ namespace BeltFlo.Forms
             this.lblTruckFullVal.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.lblTruckFullVal.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.lblTruckFullVal.ForeColor = System.Drawing.Color.White;
-            this.lblTruckFullVal.Location = new System.Drawing.Point(285, 540);
+            this.lblTruckFullVal.Location = new System.Drawing.Point(285, 622);
             this.lblTruckFullVal.Name = "lblTruckFullVal";
             this.lblTruckFullVal.Size = new System.Drawing.Size(195, 36);
             this.lblTruckFullVal.TabIndex = 25;
@@ -442,7 +488,7 @@ namespace BeltFlo.Forms
             //
             this.lblTruckFullUnit.Font = new System.Drawing.Font("Microsoft Sans Serif", 12F);
             this.lblTruckFullUnit.ForeColor = System.Drawing.Color.Silver;
-            this.lblTruckFullUnit.Location = new System.Drawing.Point(488, 546);
+            this.lblTruckFullUnit.Location = new System.Drawing.Point(488, 628);
             this.lblTruckFullUnit.Name = "lblTruckFullUnit";
             this.lblTruckFullUnit.Size = new System.Drawing.Size(64, 24);
             this.lblTruckFullUnit.TabIndex = 26;
@@ -454,7 +500,7 @@ namespace BeltFlo.Forms
             this.btnSaveSettings.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSaveSettings.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnSaveSettings.ForeColor = System.Drawing.Color.White;
-            this.btnSaveSettings.Location = new System.Drawing.Point(8, 598);
+            this.btnSaveSettings.Location = new System.Drawing.Point(8, 680);
             this.btnSaveSettings.Name = "btnSaveSettings";
             this.btnSaveSettings.Size = new System.Drawing.Size(130, 44);
             this.btnSaveSettings.TabIndex = 18;
@@ -468,7 +514,7 @@ namespace BeltFlo.Forms
             this.btnSettingsClose.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.btnSettingsClose.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F, System.Drawing.FontStyle.Bold);
             this.btnSettingsClose.ForeColor = System.Drawing.Color.White;
-            this.btnSettingsClose.Location = new System.Drawing.Point(422, 598);
+            this.btnSettingsClose.Location = new System.Drawing.Point(422, 680);
             this.btnSettingsClose.Name = "btnSettingsClose";
             this.btnSettingsClose.Size = new System.Drawing.Size(130, 44);
             this.btnSettingsClose.TabIndex = 19;
@@ -479,7 +525,7 @@ namespace BeltFlo.Forms
             // frmMenuSettings
             // 
             this.BackColor = System.Drawing.Color.White;
-            this.ClientSize = new System.Drawing.Size(564, 706);
+            this.ClientSize = new System.Drawing.Size(564, 788);
             this.Controls.Add(this.pnlContent);
             this.Controls.Add(this.pnlTitle);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 14.25F);
@@ -507,6 +553,9 @@ namespace BeltFlo.Forms
         private System.Windows.Forms.Button   btnYieldLb;
         private System.Windows.Forms.Button   btnYieldCwt;
         private System.Windows.Forms.Button   btnYieldTons;
+        private System.Windows.Forms.Label    lblAogYieldRange;
+        private System.Windows.Forms.Button   btnYieldLow;
+        private System.Windows.Forms.Button   btnYieldHigh;
         private System.Windows.Forms.Label    lblNetwork;
         private System.Windows.Forms.Button   btnEthernet;
         private System.Windows.Forms.Button   btnCAN;

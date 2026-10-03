@@ -18,7 +18,11 @@ The custom AgOpenWeb build also sends BeltFlo the classic GPS/heading, speed, an
 
 ## Web/iPad display
 
+The first supported deployment has **BeltFlo and the AgOpenWeb host running on the same Windows computer**. BeltFlo and the host communicate over loopback, while the iPad/phone/browser can connect to AgOpenWeb over the normal LAN connection.
+
 AgOpenWeb's browser clients already receive the coverage display layer from the host. Because the BeltFlo integration changes only that display layer, the yield colors are sent through the normal AgOpenWeb coverage websocket path and appear in the browser/iPad map without a separate browser plugin.
+
+Running the AgOpenWeb backend itself on a different physical device is not part of this first version; that would require a configurable LAN target instead of loopback.
 
 ## Updates
 

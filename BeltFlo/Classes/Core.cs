@@ -10,7 +10,7 @@ namespace BeltFlo.Classes
     public static class Core
     {
         // Subsystems
-        public static UDPComm UDPaog;                           // GPS from AOG       recv:17777 send:15555
+        public static UDPComm UDPaog;                           // guidance bridge     recv:17777; live yield → AOG 15555 + AgOpenWeb 9999
         public static UDPComm UDPmodule;                        // BeltFlo module     recv:30300 (WiFi mode)
         public static CanModuleComm CanModule = new CanModuleComm(); // BeltFlo module  CAN mode
         public static clsGPS GPS = new clsGPS();
@@ -82,6 +82,19 @@ namespace BeltFlo.Classes
             && !LastOverload
             && LastTared
             && ActiveScaleCalibrated;
+
+        /// <summary>
+        /// Offer one live-yield packet to both supported guidance hosts.
+        /// Only the app that is running/listening will consume it:
+        /// classic AgOpenGPS listens on loopback 15555; the BeltFlo-enabled
+        /// AgOpenWeb host listens on its normal UDP service port 9999.
+        /// </summary>
+        public static void SendLiveYield(byte[] packet)
+        {
+            if (packet == null || packet.Length == 0 || UDPaog == null) return;
+            UDPaog.SendTo(packet, System.Net.IPAddress.Loopback, 15555);
+            UDPaog.SendTo(packet, System.Net.IPAddress.Loopback, 9999);
+        }
 
         // Flags
         public static bool IsShuttingDown { get; private set; }

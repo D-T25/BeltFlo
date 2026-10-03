@@ -94,7 +94,9 @@ BeltFlo sends the same mapped point it stores in its database, including GPS pos
 
 The colored yield overlay is separate from AOG's normal worked-area/section-control coverage. It is not drawn into AOG's hidden overlap-control buffer, so red/yellow/green/blue yield colors do not change section switching.
 
-The first version uses eight fixed color bands from **20,000 to 80,000 lb/ac**, from dark red at the low end through blue at the high end. AOG saves the received samples as **BeltFloYield.txt** in the open AOG field folder and reloads them when that field is reopened.
+The overlay uses eight stable color bands from dark red at the low end through blue at the high end. Set the endpoints in **Settings -> AOG Yield Color Range**. The defaults are **20,000 and 80,000 lb/ac**. BeltFlo displays the endpoints in the currently selected yield unit (lb/ac, cwt/ac, tons/ac, or t/ha), stores them internally in lb/ac, and sends them with every live-yield point. Changing the range recolors the AOG yield overlay without rebuilding AOG.
+
+AOG saves the received samples and color-range values as **BeltFloYield.txt** in the open AOG field folder and reloads them when that field is reopened.
 
 ### Overlap compensation
 

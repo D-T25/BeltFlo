@@ -12,11 +12,11 @@ The live overlay is deliberately separate from AOG's normal section-control cove
 
 ## Current color scale
 
-The first implementation uses eight fixed bands from **20,000 to 80,000 lb/ac**:
+The overlay uses eight stable bands:
 
 dark red -> red -> orange -> yellow -> yellow-green -> green -> cyan -> blue
 
-BeltFlo always transmits lb/ac internally even when its display is set to cwt/ac or tons/ac.
+Set the **Low** and **High** endpoints in **BeltFlo Settings -> AOG Yield Color Range**. The defaults are **20,000 and 80,000 lb/ac**. BeltFlo shows those values in the currently selected yield units (lb/ac, cwt/ac, tons/ac, or t/ha), stores them internally in lb/ac, and sends them with every live-yield packet. Changing the range therefore recolors the whole AOG overlay without rebuilding AgOpenGPS.
 
 ## Persistence
 

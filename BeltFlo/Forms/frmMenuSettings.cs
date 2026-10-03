@@ -17,7 +17,13 @@ namespace BeltFlo.Forms
         private bool _padOpen;
         private double _truckFullWarningLb;
         private string _yieldUnit = "cwt/ac";
+        private double _yieldScaleMinLbAc = 20000;
+        private double _yieldScaleMaxLbAc = 80000;
         private const double KG_PER_LB = 0.45359237;
+        private const double LB_PER_CWT = 100.0;
+        private const double LB_PER_TON = 2000.0;
+        private const double LB_PER_METRIC_TON = 2204.62262185;
+        private const double HA_PER_AC = 0.40468564224;
 
         private static readonly Color ActiveColour = Color.FromArgb(0, 80, 160);
         private static readonly Color InactiveColour = Color.FromArgb(60, 60, 60);
@@ -96,6 +102,13 @@ namespace BeltFlo.Forms
             _yieldUnit = savedYieldUnit == "lb/ac" || savedYieldUnit == "tons/ac" || savedYieldUnit == "cwt/ac"
                 ? savedYieldUnit
                 : "cwt/ac";
+            _yieldScaleMinLbAc = Math.Max(0, Properties.Settings.Default.YieldScaleMin);
+            _yieldScaleMaxLbAc = Properties.Settings.Default.YieldScaleMax;
+            if (_yieldScaleMaxLbAc <= _yieldScaleMinLbAc)
+            {
+                _yieldScaleMinLbAc = 20000;
+                _yieldScaleMaxLbAc = 80000;
+            }
             ShowYieldUnits();
 
             // Network mode
@@ -180,6 +193,101 @@ namespace BeltFlo.Forms
             btnYieldLb.BackColor   = imperial && _yieldUnit == "lb/ac"   ? ActiveColour : InactiveColour;
             btnYieldCwt.BackColor  = imperial && _yieldUnit == "cwt/ac"  ? ActiveColour : InactiveColour;
             btnYieldTons.BackColor = imperial && _yieldUnit == "tons/ac" ? ActiveColour : InactiveColour;
+            ShowYieldRange();
+        }
+
+        private string EditingYieldRateUnit => EditingMetric ? "t/ha" : _yieldUnit;
+
+        private int YieldRateDecimals =>
+            EditingMetric ? 1 : _yieldUnit == "lb/ac" ? 0 : _yieldUnit == "cwt/ac" ? 1 : 2;
+
+        private double YieldRateToDisplay(double lbPerAc)
+        {
+            if (EditingMetric)
+                return lbPerAc / LB_PER_METRIC_TON / HA_PER_AC;
+            if (_yieldUnit == "lb/ac")
+                return lbPerAc;
+            if (_yieldUnit == "tons/ac")
+                return lbPerAc / LB_PER_TON;
+            return lbPerAc / LB_PER_CWT;
+        }
+
+        private double YieldRateFromDisplay(double display)
+        {
+            if (EditingMetric)
+                return display * LB_PER_METRIC_TON * HA_PER_AC;
+            if (_yieldUnit == "lb/ac")
+                return display;
+            if (_yieldUnit == "tons/ac")
+                return display * LB_PER_TON;
+            return display * LB_PER_CWT;
+        }
+
+        private void ShowYieldRange()
+        {
+            int decimals = YieldRateDecimals;
+            btnYieldLow.Text = Lang.lgLow + "  "
+                + YieldRateToDisplay(_yieldScaleMinLbAc).ToString("F" + decimals)
+                + " " + EditingYieldRateUnit;
+            btnYieldHigh.Text = Lang.lgHigh + "  "
+                + YieldRateToDisplay(_yieldScaleMaxLbAc).ToString("F" + decimals)
+                + " " + EditingYieldRateUnit;
+        }
+
+        private void btnYieldLow_Click(object sender, EventArgs e)
+        {
+            if (_padOpen) return;
+            _padOpen = true;
+            try
+            {
+                double current = YieldRateToDisplay(_yieldScaleMinLbAc);
+                double max = Math.Max(YieldRateToDisplay(500000), current + 1);
+                using var pad = new frmNumpad(0, max, current, YieldRateDecimals,
+                                              "Low AOG Yield (" + EditingYieldRateUnit + ")");
+                if (pad.ShowDialog(this) != DialogResult.OK) return;
+
+                double lbAc = YieldRateFromDisplay(pad.ReturnValue);
+                if (lbAc >= _yieldScaleMaxLbAc)
+                {
+                    MessageBox.Show("Low yield must be less than High yield.",
+                                    "Yield Color Range",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Information);
+                    return;
+                }
+
+                _yieldScaleMinLbAc = Math.Max(0, lbAc);
+                ShowYieldRange();
+            }
+            finally { _padOpen = false; }
+        }
+
+        private void btnYieldHigh_Click(object sender, EventArgs e)
+        {
+            if (_padOpen) return;
+            _padOpen = true;
+            try
+            {
+                double current = YieldRateToDisplay(_yieldScaleMaxLbAc);
+                double max = Math.Max(YieldRateToDisplay(500000), current + 1);
+                using var pad = new frmNumpad(0, max, current, YieldRateDecimals,
+                                              "High AOG Yield (" + EditingYieldRateUnit + ")");
+                if (pad.ShowDialog(this) != DialogResult.OK) return;
+
+                double lbAc = YieldRateFromDisplay(pad.ReturnValue);
+                if (lbAc <= _yieldScaleMinLbAc)
+                {
+                    MessageBox.Show("High yield must be greater than Low yield.",
+                                    "Yield Color Range",
+                                    MessageBoxButtons.OK,
+                                    MessageBoxIcon.Information);
+                    return;
+                }
+
+                _yieldScaleMaxLbAc = lbAc;
+                ShowYieldRange();
+            }
+            finally { _padOpen = false; }
         }
 
         private void btnImperial_Click(object sender, EventArgs e)
@@ -252,6 +360,8 @@ namespace BeltFlo.Forms
             bool isImperial = btnImperial.BackColor == ActiveColour;
             Properties.Settings.Default.Units = isImperial ? "Imperial" : "Metric";
             Properties.Settings.Default.YieldUnit = _yieldUnit;
+            Properties.Settings.Default.YieldScaleMin = _yieldScaleMinLbAc;
+            Properties.Settings.Default.YieldScaleMax = _yieldScaleMaxLbAc;
 
             // Network / comm type
             bool isEthernet = btnEthernet.BackColor == ActiveColour;

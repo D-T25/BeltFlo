@@ -1,0 +1,60 @@
+name: BeltFlo AgOpenWeb Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - beltflo-esp32-conversion
+    paths:
+      - "AgOpenWebIntegration/**"
+      - "BeltFlo/Communication/AogYieldPacket.cs"
+      - "BeltFlo/Classes/Core.cs"
+      - "BeltFlo/Classes/clsDataCollector.cs"
+      - "BeltFlo/Communication/UDPcomm.cs"
+      - ".github/workflows/beltflo-agopenweb-build.yml"
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout BeltFlo
+        uses: actions/checkout@v5
+
+      - name: Checkout pinned AgOpenWeb
+        uses: actions/checkout@v5
+        with:
+          repository: AgOpenGPS-Official/AgOpenWeb
+          ref: 4103fba1881f6d3c40f020b4d12601aed167cb6f
+          path: agopenweb
+          fetch-depth: 0
+
+      - name: Apply BeltFlo AgOpenWeb integration
+        shell: powershell
+        run: .\AgOpenWebIntegration\apply-beltflo-agopenweb.ps1 -AgOpenWebRoot .\agopenweb
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Test AgOpenWeb models
+        run: dotnet test .\agopenweb\Tests\AgOpenWeb.Models.Tests\ --configuration Release -p:DesktopOnly=true
+
+      - name: Test AgOpenWeb services
+        run: dotnet test .\agopenweb\Tests\AgOpenWeb.Services.Tests\ --configuration Release -p:DesktopOnly=true
+
+      - name: Test AgOpenWeb view models
+        run: dotnet test .\agopenweb\Tests\AgOpenWeb.ViewModels.Tests\ --configuration Release -p:DesktopOnly=true
+
+      - name: Build AgOpenWeb desktop
+        run: dotnet build .\agopenweb\Platforms\AgOpenWeb.Desktop\AgOpenWeb.Desktop.csproj --configuration Release -p:DesktopOnly=true
+
+      - name: Publish AgOpenWeb desktop
+        run: dotnet publish .\agopenweb\Platforms\AgOpenWeb.Desktop\AgOpenWeb.Desktop.csproj --configuration Release -p:DesktopOnly=true --self-contained false --output .\publish\AgOpenWeb-BeltFlo
+
+      - name: Upload custom AgOpenWeb
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgOpenWeb-BeltFlo
+          path: .\publish\AgOpenWeb-BeltFlo

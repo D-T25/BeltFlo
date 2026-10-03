@@ -30,7 +30,7 @@ Everything is stored in pounds and pounds per acre. Imperial display can be lb/a
 - Scale Calibration with full-belt empty zero and stopped known-weight span calibration
 - Loads screen with certified tickets: per-load correction for direct-to-truck scales, or whole-job ticket-total correction/calibration for a scale before the holding tank
 - Reports export CSV plus a zipped WGS84 polygon shapefile yield map for FieldView/GIS Imported Map workflows
-- Live yield-map integration for **either classic AgOpenGPS or AgOpenWeb**. BeltFlo offers the same delay-corrected packet to both local hosts automatically; custom builds paint the yield colors without changing the section-control detection layer. The low/high color range is adjustable in BeltFlo Settings
+- Live yield-map integration for **either classic AgOpenGPS or AgOpenWeb**. BeltFlo offers the same delay-corrected packet to both local hosts automatically; custom builds paint the yield colors without changing the section-control detection layer. For AgOpenWeb, BeltFlo + the host currently run on the same Windows PC while iPad/browser clients connect over LAN. The low/high color range is adjustable in BeltFlo Settings
 - "No load open" and truck-full alarms only when the scale feeds the truck directly; pause/sections alarm in either arrangement
 - Root-crop run screen showing yield, current truck load, flow, belt speed and module/scale status
 

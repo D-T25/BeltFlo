@@ -15,8 +15,8 @@ namespace BeltFlo.Communication
     ///   1   0x81
     ///   2   0x7F
     ///   3   0xC7  BeltFlo live yield
-    ///   4   34    payload bytes
-    ///   5   version = 1
+    ///   4   42    payload bytes
+    ///   5   version = 2
     ///   6   flags: bit0 valid, bit1 pass break, bit2 pass start
     ///   7..14   latitude double
     ///   15..22  longitude double
@@ -24,7 +24,9 @@ namespace BeltFlo.Communication
     ///   27..30  digging width metres float
     ///   31..34  heading degrees float
     ///   35..38  UTC unix seconds uint32
-    ///   39      AOG checksum (sum bytes 2..38)
+    ///   39..42  low color-scale yield lb/ac float
+    ///   43..46  high color-scale yield lb/ac float
+    ///   47      AOG checksum (sum bytes 2..46)
     ///
     /// BeltFlo sends positions that have ALREADY been corrected for the configured
     /// digger-to-scale processing delay. AOG must therefore draw the supplied
@@ -33,9 +35,9 @@ namespace BeltFlo.Communication
     public static class AogYieldPacket
     {
         public const byte MessageId = 0xC7;
-        public const byte Version = 1;
-        public const int PayloadLength = 34;
-        public const int PacketLength = 40;
+        public const byte Version = 2;
+        public const int PayloadLength = 42;
+        public const int PacketLength = 48;
 
         public const byte FlagValid = 1 << 0;
         public const byte FlagPassBreak = 1 << 1;
@@ -44,6 +46,8 @@ namespace BeltFlo.Communication
         public static byte[] Build(
             YieldDataPoint point,
             double diggingWidthM,
+            double colorScaleMinLbAc,
+            double colorScaleMaxLbAc,
             bool passStart,
             bool passBreak)
         {
@@ -75,6 +79,11 @@ namespace BeltFlo.Communication
             long unix = (long)(utc - new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)).TotalSeconds;
             uint unix32 = unix <= 0 ? 0u : unix >= uint.MaxValue ? uint.MaxValue : (uint)unix;
             Copy(BitConverter.GetBytes(unix32), data, 35);
+
+            double low = Math.Max(0, colorScaleMinLbAc);
+            double high = colorScaleMaxLbAc > low ? colorScaleMaxLbAc : low + 1;
+            Copy(BitConverter.GetBytes((float)low), data, 39);
+            Copy(BitConverter.GetBytes((float)high), data, 43);
 
             byte checksum = 0;
             for (int i = 2; i < PacketLength - 1; i++)

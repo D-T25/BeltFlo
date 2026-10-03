@@ -113,6 +113,15 @@ namespace BeltFlo.Properties
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int YieldScaleVersion
+        {
+            get { return ((int)(this["YieldScaleVersion"])); }
+            set { this["YieldScaleVersion"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("10")]
         public int ProcessingDelaySec
         {

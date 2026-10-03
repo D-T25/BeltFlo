@@ -330,7 +330,7 @@ namespace BeltFlo.LogicTests
                 YieldRate = 48250.0
             };
 
-            byte[] p = AogYieldPacket.Build(point, 6.096, true, false);
+            byte[] p = AogYieldPacket.Build(point, 6.096, 18000, 82000, true, false);
             Equal(AogYieldPacket.PacketLength, p.Length, "AOG packet length");
             Equal(0x80, p[0], "AOG header 0");
             Equal(0x81, p[1], "AOG header 1");
@@ -346,9 +346,11 @@ namespace BeltFlo.LogicTests
             Nearly(point.YieldRate, BitConverter.ToSingle(p, 23), 0.01, "AOG yield");
             Nearly(6.096, BitConverter.ToSingle(p, 27), 1e-5, "AOG width");
             Nearly(point.Heading, BitConverter.ToSingle(p, 31), 1e-5, "AOG heading");
+            Nearly(18000.0, BitConverter.ToSingle(p, 39), 0.01, "AOG color low");
+            Nearly(82000.0, BitConverter.ToSingle(p, 43), 0.01, "AOG color high");
             True(AogYieldPacket.HasGoodChecksum(p), "AOG checksum");
 
-            byte[] brk = AogYieldPacket.Build(point, 6.096, false, true);
+            byte[] brk = AogYieldPacket.Build(point, 6.096, 18000, 82000, false, true);
             True((brk[6] & AogYieldPacket.FlagValid) == 0, "break not valid");
             True((brk[6] & AogYieldPacket.FlagPassBreak) != 0, "break flag set");
             True(AogYieldPacket.HasGoodChecksum(brk), "break checksum");

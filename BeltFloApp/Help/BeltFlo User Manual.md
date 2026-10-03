@@ -86,6 +86,16 @@ For example, if 20 lb is sitting on a 36 in weighed section and the belt moves 3
 
 Crop is dug at the harvester first and reaches the scale later. BeltFlo delays the scale weight back to the GPS position where that crop was dug. Set this in **Conveyor Setup -> Dig to Scale Delay**.
 
+### Live BeltFlo yield on the AgOpenGPS map
+
+BeltFlo can work with the repository's **custom AgOpenGPS-BeltFlo build** to paint the delay-corrected yield directly on the normal AOG field screen.
+
+BeltFlo sends the same mapped point it stores in its database, including GPS position, digging width, heading, and yield in lb/ac. Because the dig-to-scale delay has already been applied by BeltFlo, AOG draws that supplied position without adding another flow delay.
+
+The colored yield overlay is separate from AOG's normal worked-area/section-control coverage. It is not drawn into AOG's hidden overlap-control buffer, so red/yellow/green/blue yield colors do not change section switching.
+
+The first version uses eight fixed color bands from **20,000 to 80,000 lb/ac**, from dark red at the low end through blue at the high end. AOG saves the received samples as **BeltFloYield.txt** in the open AOG field folder and reloads them when that field is reopened.
+
 ### Overlap compensation
 
 BeltFlo tracks already-harvested ground. If a pass overlaps a previous pass, only the new uncovered part is credited with area and yield. This means a short last pass generally does not require manually changing the row count just because only part of the machine is in crop.

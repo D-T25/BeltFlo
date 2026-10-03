@@ -95,7 +95,7 @@ namespace BeltFlo.Properties
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        [global::System.Configuration.DefaultSettingValueAttribute("20000")]
         public double YieldScaleMin
         {
             get { return ((double)(this["YieldScaleMin"])); }
@@ -104,7 +104,7 @@ namespace BeltFlo.Properties
 
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("60000")]
+        [global::System.Configuration.DefaultSettingValueAttribute("80000")]
         public double YieldScaleMax
         {
             get { return ((double)(this["YieldScaleMax"])); }

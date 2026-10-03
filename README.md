@@ -30,7 +30,7 @@ Everything is stored in pounds and pounds per acre. Imperial display can be lb/a
 - Scale Calibration with full-belt empty zero and stopped known-weight span calibration
 - Loads screen with certified tickets: per-load correction for direct-to-truck scales, or whole-job ticket-total correction/calibration for a scale before the holding tank
 - Reports export CSV plus a zipped WGS84 polygon shapefile yield map for FieldView/GIS Imported Map workflows
-- Optional custom AgOpenGPS build that paints BeltFlo's delay-corrected live yield directly on the normal AOG field map without changing AOG's section-control overlap logic
+- Optional custom AgOpenGPS build that paints BeltFlo's delay-corrected live yield directly on the normal AOG field map without changing AOG's section-control overlap logic; the low/high color range is adjustable in BeltFlo Settings
 - "No load open" and truck-full alarms only when the scale feeds the truck directly; pause/sections alarm in either arrangement
 - Root-crop run screen showing yield, current truck load, flow, belt speed and module/scale status
 

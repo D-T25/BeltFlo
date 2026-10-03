@@ -98,6 +98,8 @@ The overlay uses eight stable color bands from dark red at the low end through b
 
 The AgOpenWeb custom build also sends GPS, heading, speed, and 64-section state back to BeltFlo on the same legacy packets BeltFlo already understands, so BeltFlo's mapping pipeline works the same with either guidance host.
 
+For the first AgOpenWeb version, **BeltFlo and the AgOpenWeb host run on the same Windows computer**. An iPad, phone, or other browser can still display/control AgOpenWeb over the normal LAN connection. Running the AgOpenWeb backend itself on another physical device will require a configurable LAN target in BeltFlo.
+
 ### Overlap compensation
 
 BeltFlo tracks already-harvested ground. If a pass overlaps a previous pass, only the new uncovered part is credited with area and yield. This means a short last pass generally does not require manually changing the row count just because only part of the machine is in crop.

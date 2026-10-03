@@ -142,6 +142,9 @@
   <data name="lgImperial" xml:space="preserve"><value>Imperial</value></data>
   <data name="lgMetric" xml:space="preserve"><value>Metric</value></data>
   <data name="lgYieldUnits" xml:space="preserve"><value>Yield Units (Imperial)</value></data>
+  <data name="lgAogYieldRange" xml:space="preserve"><value>AOG Yield Color Range</value></data>
+  <data name="lgLow" xml:space="preserve"><value>Low</value></data>
+  <data name="lgHigh" xml:space="preserve"><value>High</value></data>
   <data name="lgLbPerAc" xml:space="preserve"><value>lb/ac</value></data>
   <data name="lgCwtPerAc" xml:space="preserve"><value>cwt/ac</value></data>
   <data name="lgTonsPerAc" xml:space="preserve"><value>tons/ac</value></data>

@@ -31,6 +31,7 @@ namespace BeltFlo.LogicTests
             Run("Yield formula matches lb/ac geometry", TestYieldFormula);
             Run("Metres-to-acres conversion", TestMetresToAcres);
             Run("FieldView shapefile export writes polygon package", TestShapefileExport);
+            Run("AgOpenGPS live-yield packet layout and checksum", TestAogYieldPacket);
 
             Console.WriteLine();
             Console.WriteLine($"BeltFlo logic tests: {_passed} passed, {_failed} failed.");
@@ -315,6 +316,42 @@ namespace BeltFlo.LogicTests
         private static void TestMetresToAcres()
         {
             Nearly(1.0, clsYieldCalculator.MetresToAcres(4046.856, 1.0), 1e-12, "one acre");
+        }
+
+        private static void TestAogYieldPacket()
+        {
+            DateTime stamp = new DateTime(2026, 10, 2, 14, 30, 0, DateTimeKind.Utc);
+            var point = new YieldDataPoint
+            {
+                Timestamp = stamp,
+                Latitude = 48.1234567,
+                Longitude = -97.7654321,
+                Heading = 271.5,
+                YieldRate = 48250.0
+            };
+
+            byte[] p = AogYieldPacket.Build(point, 6.096, true, false);
+            Equal(AogYieldPacket.PacketLength, p.Length, "AOG packet length");
+            Equal(0x80, p[0], "AOG header 0");
+            Equal(0x81, p[1], "AOG header 1");
+            Equal(0x7F, p[2], "AOG source");
+            Equal(AogYieldPacket.MessageId, p[3], "AOG message id");
+            Equal(AogYieldPacket.PayloadLength, p[4], "AOG payload length");
+            Equal(AogYieldPacket.Version, p[5], "AOG packet version");
+            True((p[6] & AogYieldPacket.FlagValid) != 0, "AOG valid flag");
+            True((p[6] & AogYieldPacket.FlagPassStart) != 0, "AOG pass-start flag");
+            True((p[6] & AogYieldPacket.FlagPassBreak) == 0, "AOG no break flag");
+            Nearly(point.Latitude, BitConverter.ToDouble(p, 7), 1e-9, "AOG latitude");
+            Nearly(point.Longitude, BitConverter.ToDouble(p, 15), 1e-9, "AOG longitude");
+            Nearly(point.YieldRate, BitConverter.ToSingle(p, 23), 0.01, "AOG yield");
+            Nearly(6.096, BitConverter.ToSingle(p, 27), 1e-5, "AOG width");
+            Nearly(point.Heading, BitConverter.ToSingle(p, 31), 1e-5, "AOG heading");
+            True(AogYieldPacket.HasGoodChecksum(p), "AOG checksum");
+
+            byte[] brk = AogYieldPacket.Build(point, 6.096, false, true);
+            True((brk[6] & AogYieldPacket.FlagValid) == 0, "break not valid");
+            True((brk[6] & AogYieldPacket.FlagPassBreak) != 0, "break flag set");
+            True(AogYieldPacket.HasGoodChecksum(brk), "break checksum");
         }
 
         private static void TestShapefileExport()

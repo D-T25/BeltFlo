@@ -37,7 +37,9 @@ public partial class MainViewModel
             var speed = new byte[7];
             speed[0] = 0x80; speed[1] = 0x81; speed[2] = 0x7F;
             speed[3] = 254; speed[4] = 2;
-            double kmh = Math.Max(0, result.Speed);
+            // GpsCycleResult.Speed is metres/second; BeltFlo's legacy 254
+            // packet expects km/h x10.
+            double kmh = Math.Max(0, result.Speed * 3.6);
             ushort speedX10 = (ushort)Math.Min(ushort.MaxValue, Math.Round(kmh * 10.0));
             Buffer.BlockCopy(BitConverter.GetBytes(speedX10), 0, speed, 5, 2);
             BeltFloBridgeSocket.SendTo(speed, BeltFloEndpoint);

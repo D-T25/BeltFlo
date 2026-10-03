@@ -69,6 +69,27 @@ namespace BeltFlo.Communication
         }
 
         /// <summary>
+        /// Send to an explicit host/port instead of this channel's configured
+        /// broadcast target. BeltFlo uses this for its live-yield bridge so the
+        /// same packet can be offered to classic AgOpenGPS (15555) and
+        /// AgOpenWeb (9999) without changing the GPS receive channel.
+        /// </summary>
+        public void SendTo(byte[] byteData, IPAddress address, int port)
+        {
+            if (!Running || sendSocket == null || byteData == null || byteData.Length == 0
+                || address == null || port <= 0) return;
+            try
+            {
+                sendSocket.BeginSendTo(byteData, 0, byteData.Length, SocketFlags.None,
+                    new IPEndPoint(address, port), new AsyncCallback(HandleSend), null);
+            }
+            catch (Exception ex)
+            {
+                Props.WriteErrorLog("UDPComm/SendTo " + ex.Message);
+            }
+        }
+
+        /// <summary>
         /// Sends straight to the module the last packet came from, so it arrives even
         /// where broadcasts are filtered. Broadcasts only until a module has been heard.
         /// </summary>

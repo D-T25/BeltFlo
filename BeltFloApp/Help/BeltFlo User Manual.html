@@ -333,29 +333,32 @@ belt moves 36 in, that represents 20 lb delivered.</p>
 BeltFlo delays the scale weight back to the GPS position where that crop
 was dug. Set this in <strong>Conveyor Setup -&gt; Dig to Scale
 Delay</strong>.</p>
-<h3 id="live-beltflo-yield-on-the-agopengps-map">Live BeltFlo yield on the AgOpenGPS map</h3>
-<p>BeltFlo can work with the repository's <strong>custom
-AgOpenGPS-BeltFlo build</strong> to paint the delay-corrected yield
-directly on the normal AOG field screen.</p>
-<p>BeltFlo sends the same mapped point it stores in its database,
-including GPS position, digging width, heading, and yield in lb/ac.
-Because the dig-to-scale delay has already been applied by BeltFlo, AOG
-draws that supplied position without adding another flow delay.</p>
-<p>The colored yield overlay is separate from AOG's normal
-worked-area/section-control coverage. It is not drawn into AOG's hidden
-overlap-control buffer, so yield colors do not change section
-switching.</p>
+<h3 id="live-beltflo-yield-on-agopengps-or-agopenweb">Live BeltFlo yield on AgOpenGPS or AgOpenWeb</h3>
+<p>BeltFlo can work with either the repository's <strong>custom
+AgOpenGPS-BeltFlo build</strong> or <strong>custom
+AgOpenWeb-BeltFlo build</strong>. BeltFlo sends the same delay-corrected
+live-yield packet to both local guidance ports, so no BeltFlo mode
+switch is needed; whichever guidance host is running consumes it.</p>
+<p>The packet contains the same mapped point BeltFlo stores in its
+database: GPS position, digging width, heading, yield in lb/ac, pass
+state, and the selected Low/High color range. Because BeltFlo already
+applied Dig to Scale Delay, neither guidance app adds another flow
+delay.</p>
+<p>In classic AgOpenGPS the colored yield ribbon is a separate visible
+overlay and never enters AOG's hidden overlap-control buffer. In
+AgOpenWeb the receiver recolors only the coverage <strong>display
+layer</strong>; its detection bitmap remains unchanged. In both cases
+yield colors therefore cannot alter automatic section switching.</p>
 <p>The overlay uses eight stable color bands from dark red at the low
 end through blue at the high end. Set the endpoints in
 <strong>Settings -&gt; AOG Yield Color Range</strong>. The defaults are
 <strong>20,000 and 80,000 lb/ac</strong>. BeltFlo displays the endpoints
-in the currently selected yield unit (lb/ac, cwt/ac, tons/ac, or t/ha),
-stores them internally in lb/ac, and sends them with every live-yield
-point. Changing the range recolors the AOG yield overlay without
-rebuilding AOG.</p>
-<p>AOG saves the received samples and color-range values as
-<strong>BeltFloYield.txt</strong> in the open AOG field folder and
-reloads them when that field is reopened.</p>
+in the selected yield unit (lb/ac, cwt/ac, tons/ac, or t/ha) and
+stores/transmits them internally in lb/ac.</p>
+<p>The AgOpenWeb custom build also sends GPS, heading, speed, and
+64-section state back to BeltFlo on the same legacy packets BeltFlo
+already understands, so BeltFlo's mapping pipeline works the same with
+either guidance host.</p>
 <h3 id="overlap-compensation">Overlap compensation</h3>
 <p>BeltFlo tracks already-harvested ground. If a pass overlaps a
 previous pass, only the new uncovered part is credited with area and

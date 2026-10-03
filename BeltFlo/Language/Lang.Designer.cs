@@ -107,8 +107,6 @@ namespace BeltFlo.Language
         internal static string lgMetric        => Get("lgMetric");
         internal static string lgYieldUnits    => Get("lgYieldUnits");
         internal static string lgAogYieldRange => Get("lgAogYieldRange");
-        internal static string lgLow           => Get("lgLow");
-        internal static string lgHigh          => Get("lgHigh");
         internal static string lgLbPerAc       => Get("lgLbPerAc");
         internal static string lgCwtPerAc      => Get("lgCwtPerAc");
         internal static string lgTonsPerAc     => Get("lgTonsPerAc");

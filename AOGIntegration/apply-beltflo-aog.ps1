@@ -15,7 +15,7 @@ function Replace-ExactlyOnce {
     $text = Get-Content -LiteralPath $Path -Raw
     $count = ([regex]::Matches($text, [regex]::Escape($Anchor))).Count
     if ($count -ne 1) {
-        throw "Expected exactly one anchor in $Path, found $count: $Anchor"
+        throw "Expected exactly one anchor in $Path, found ${count}: $Anchor"
     }
 
     $text = $text.Replace($Anchor, $Replacement)

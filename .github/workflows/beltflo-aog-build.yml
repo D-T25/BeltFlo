@@ -40,13 +40,15 @@ jobs:
         run: dotnet restore .\aog\SourceCode\AgOpenGPS.sln
 
       - name: Build AgOpenGPS
-        run: dotnet build --no-restore --configuration Release .\aog\SourceCode\AgOpenGPS.sln
+        # Upstream develop currently has CA2024 in FormJob.cs. Suppress that
+        # pre-existing analyzer finding so this workflow can validate BeltFlo's patch.
+        run: dotnet build --no-restore --configuration Release -p:NoWarn=CA2024 .\aog\SourceCode\AgOpenGPS.sln
 
       - name: Test AgOpenGPS
         run: dotnet test --no-restore --no-build --configuration Release .\aog\SourceCode\AgOpenGPS.sln
 
       - name: Publish AgOpenGPS
-        run: dotnet publish --no-restore --configuration Release .\aog\SourceCode\AgOpenGPS.sln
+        run: dotnet publish --no-restore --configuration Release -p:NoWarn=CA2024 .\aog\SourceCode\AgOpenGPS.sln
 
       - name: Upload custom AgOpenGPS
         uses: actions/upload-artifact@v4

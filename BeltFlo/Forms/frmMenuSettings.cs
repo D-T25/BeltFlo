@@ -102,6 +102,21 @@ namespace BeltFlo.Forms
             _yieldUnit = savedYieldUnit == "lb/ac" || savedYieldUnit == "tons/ac" || savedYieldUnit == "cwt/ac"
                 ? savedYieldUnit
                 : "cwt/ac";
+            // YieldScaleMin/Max existed in early BeltFlo/YieldFlo builds but
+            // were not exposed in the UI. Migrate that old unused 0..60000 default
+            // once, then leave whatever the operator chooses from here on.
+            if (Properties.Settings.Default.YieldScaleVersion < 1)
+            {
+                if (Math.Abs(Properties.Settings.Default.YieldScaleMin) < 0.001
+                    && Math.Abs(Properties.Settings.Default.YieldScaleMax - 60000.0) < 0.001)
+                {
+                    Properties.Settings.Default.YieldScaleMin = 20000;
+                    Properties.Settings.Default.YieldScaleMax = 80000;
+                }
+                Properties.Settings.Default.YieldScaleVersion = 1;
+                Properties.Settings.Default.Save();
+            }
+
             _yieldScaleMinLbAc = Math.Max(0, Properties.Settings.Default.YieldScaleMin);
             _yieldScaleMaxLbAc = Properties.Settings.Default.YieldScaleMax;
             if (_yieldScaleMaxLbAc <= _yieldScaleMinLbAc)

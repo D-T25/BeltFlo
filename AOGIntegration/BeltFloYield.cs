@@ -9,14 +9,15 @@ namespace AgOpenGPS
 {
     public partial class FormGPS
     {
-        private const byte BeltFloYieldProtocolVersion = 1;
+        private const byte BeltFloYieldProtocolV1 = 1;
+        private const byte BeltFloYieldProtocolV2 = 2;
         private const byte BeltFloYieldFlagValid = 1 << 0;
         private const byte BeltFloYieldFlagBreak = 1 << 1;
         private const byte BeltFloYieldFlagStart = 1 << 2;
         private const double BeltFloMaxBridgeMeters = 12.0;
         private const uint BeltFloMaxGapSeconds = 4;
-        private const double BeltFloYieldMinLbAc = 20000.0;
-        private const double BeltFloYieldMaxLbAc = 80000.0;
+        private const double BeltFloDefaultYieldMinLbAc = 20000.0;
+        private const double BeltFloDefaultYieldMaxLbAc = 80000.0;
 
         private sealed class BeltFloYieldSegment
         {
@@ -45,14 +46,30 @@ namespace AgOpenGPS
         private BeltFloYieldSample beltFloPreviousSample;
         private bool beltFloHasPreviousSample;
         private string beltFloLoadedField = null;
+        private double beltFloYieldMinLbAc = BeltFloDefaultYieldMinLbAc;
+        private double beltFloYieldMaxLbAc = BeltFloDefaultYieldMaxLbAc;
 
         private void ReceiveBeltFloYield(byte[] data)
         {
-            if (data == null || data.Length != 40) return;
-            if (data[3] != 0xC7 || data[4] != 34 || data[5] != BeltFloYieldProtocolVersion) return;
+            if (data == null || data.Length < 40 || data[3] != 0xC7) return;
+
+            bool isV1 = data.Length == 40 && data[4] == 34 && data[5] == BeltFloYieldProtocolV1;
+            bool isV2 = data.Length == 48 && data[4] == 42 && data[5] == BeltFloYieldProtocolV2;
+            if (!isV1 && !isV2) return;
             if (!isJobStarted || string.IsNullOrWhiteSpace(currentFieldDirectory)) return;
 
             EnsureBeltFloYieldField();
+
+            if (isV2)
+            {
+                double low = BitConverter.ToSingle(data, 39);
+                double high = BitConverter.ToSingle(data, 43);
+                if (ValidYieldRange(low, high))
+                {
+                    beltFloYieldMinLbAc = low;
+                    beltFloYieldMaxLbAc = high;
+                }
+            }
 
             var sample = new BeltFloYieldSample
             {
@@ -83,6 +100,8 @@ namespace AgOpenGPS
             beltFloLoadedField = field;
             beltFloYieldSegments.Clear();
             beltFloHasPreviousSample = false;
+            beltFloYieldMinLbAc = BeltFloDefaultYieldMinLbAc;
+            beltFloYieldMaxLbAc = BeltFloDefaultYieldMaxLbAc;
 
             if (string.IsNullOrWhiteSpace(field)) return;
 
@@ -111,6 +130,15 @@ namespace AgOpenGPS
                         continue;
 
                     if (!ValidLatLon(lat, lon) || width <= 0 || width > 100) continue;
+
+                    if (p.Length >= 9
+                        && double.TryParse(p[7], NumberStyles.Float, CultureInfo.InvariantCulture, out double scaleLow)
+                        && double.TryParse(p[8], NumberStyles.Float, CultureInfo.InvariantCulture, out double scaleHigh)
+                        && ValidYieldRange(scaleLow, scaleHigh))
+                    {
+                        beltFloYieldMinLbAc = scaleLow;
+                        beltFloYieldMaxLbAc = scaleHigh;
+                    }
 
                     var sample = new BeltFloYieldSample
                     {
@@ -212,10 +240,10 @@ namespace AgOpenGPS
             if (cullWasEnabled) GL.Enable(EnableCap.CullFace);
         }
 
-        private static void SetBeltFloYieldColor(double yieldLbAc)
+        private void SetBeltFloYieldColor(double yieldLbAc)
         {
-            double t = (yieldLbAc - BeltFloYieldMinLbAc)
-                     / (BeltFloYieldMaxLbAc - BeltFloYieldMinLbAc);
+            double t = (yieldLbAc - beltFloYieldMinLbAc)
+                     / (beltFloYieldMaxLbAc - beltFloYieldMinLbAc);
             if (t < 0) t = 0;
             if (t > 1) t = 1;
 
@@ -245,18 +273,20 @@ namespace AgOpenGPS
 
                 if (!File.Exists(path))
                     File.WriteAllText(path,
-                        "# BeltFlo live yield: unix,lat,lon,yield_lb_ac,width_m,heading_deg,flags"
+                        "# BeltFlo live yield: unix,lat,lon,yield_lb_ac,width_m,heading_deg,flags,scale_low_lb_ac,scale_high_lb_ac"
                         + Environment.NewLine);
 
                 string line = string.Format(CultureInfo.InvariantCulture,
-                    "{0},{1:F8},{2:F8},{3:F1},{4:F3},{5:F1},{6}",
+                    "{0},{1:F8},{2:F8},{3:F1},{4:F3},{5:F1},{6},{7:F1},{8:F1}",
                     sample.UnixSeconds,
                     sample.Latitude,
                     sample.Longitude,
                     sample.YieldLbAc,
                     sample.WidthM,
                     sample.HeadingDeg,
-                    sample.Flags);
+                    sample.Flags,
+                    beltFloYieldMinLbAc,
+                    beltFloYieldMaxLbAc);
 
                 File.AppendAllText(path, line + Environment.NewLine);
             }
@@ -273,6 +303,13 @@ namespace AgOpenGPS
                 RegistrySettings.fieldsDirectory,
                 currentFieldDirectory,
                 "BeltFloYield.txt");
+        }
+
+        private static bool ValidYieldRange(double low, double high)
+        {
+            return !double.IsNaN(low) && !double.IsInfinity(low)
+                && !double.IsNaN(high) && !double.IsInfinity(high)
+                && low >= 0 && high > low;
         }
 
         private static bool ValidLatLon(double lat, double lon)

@@ -345,9 +345,15 @@ draws that supplied position without adding another flow delay.</p>
 worked-area/section-control coverage. It is not drawn into AOG's hidden
 overlap-control buffer, so yield colors do not change section
 switching.</p>
-<p>The first version uses eight fixed color bands from <strong>20,000
-to 80,000 lb/ac</strong>, from dark red at the low end through blue at
-the high end. AOG saves the received samples as
+<p>The overlay uses eight stable color bands from dark red at the low
+end through blue at the high end. Set the endpoints in
+<strong>Settings -&gt; AOG Yield Color Range</strong>. The defaults are
+<strong>20,000 and 80,000 lb/ac</strong>. BeltFlo displays the endpoints
+in the currently selected yield unit (lb/ac, cwt/ac, tons/ac, or t/ha),
+stores them internally in lb/ac, and sends them with every live-yield
+point. Changing the range recolors the AOG yield overlay without
+rebuilding AOG.</p>
+<p>AOG saves the received samples and color-range values as
 <strong>BeltFloYield.txt</strong> in the open AOG field folder and
 reloads them when that field is reopened.</p>
 <h3 id="overlap-compensation">Overlap compensation</h3>

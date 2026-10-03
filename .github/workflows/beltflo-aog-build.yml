@@ -1,0 +1,55 @@
+name: BeltFlo AgOpenGPS Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - beltflo-esp32-conversion
+    paths:
+      - "AOGIntegration/**"
+      - "BeltFlo/Communication/AogYieldPacket.cs"
+      - "BeltFlo/Classes/clsDataCollector.cs"
+      - ".github/workflows/beltflo-aog-build.yml"
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout BeltFlo
+        uses: actions/checkout@v5
+
+      - name: Checkout pinned AgOpenGPS
+        uses: actions/checkout@v5
+        with:
+          repository: AgOpenGPS-Official/AgOpenGPS
+          ref: 1ade2606cebc2c6c16ae2325707b046ca5385f23
+          path: aog
+          fetch-depth: 0
+
+      - name: Apply BeltFlo live-yield integration
+        shell: powershell
+        run: .\AOGIntegration\apply-beltflo-aog.ps1 -AogRoot .\aog
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore AgOpenGPS
+        run: dotnet restore .\aog\SourceCode\AgOpenGPS.sln
+
+      - name: Build AgOpenGPS
+        run: dotnet build --no-restore --configuration Release .\aog\SourceCode\AgOpenGPS.sln
+
+      - name: Test AgOpenGPS
+        run: dotnet test --no-restore --no-build --configuration Release .\aog\SourceCode\AgOpenGPS.sln
+
+      - name: Publish AgOpenGPS
+        run: dotnet publish --no-restore --configuration Release .\aog\SourceCode\AgOpenGPS.sln
+
+      - name: Upload custom AgOpenGPS
+        uses: actions/upload-artifact@v4
+        with:
+          name: AgOpenGPS-BeltFlo
+          path: .\aog\AgOpenGPS

@@ -326,7 +326,7 @@ namespace BeltFlo.LogicTests
                 Timestamp = stamp,
                 Latitude = 48.1234567,
                 Longitude = -97.7654321,
-                Heading = 271.5,
+                Heading = 271.5f,
                 YieldRate = 48250.0
             };
 

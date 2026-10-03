@@ -37,6 +37,9 @@
     <Setting Name="YieldScaleMax" Type="System.Double" Scope="User">
       <Value Profile="(Default)">80000</Value>
     </Setting>
+    <Setting Name="YieldScaleVersion" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
     <Setting Name="ProcessingDelaySec" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">10</Value>
     </Setting>

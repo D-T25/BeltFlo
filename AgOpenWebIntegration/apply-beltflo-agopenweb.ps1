@@ -201,13 +201,15 @@ foreach ($rel in $diFiles)
 }
 
 $apply = Join-Path $AgOpenWebRoot "Shared\AgOpenWeb.ViewModels\MainViewModel.ApplyResults.cs"
-$applyAnchor = "        // Status message (only if set — don't overwrite existing)"
-$applyInsert = @"
-        // BeltFlo uses the same GPS/section inputs with either guidance host.
-        SendBeltFloGuidanceState(result);
-
-        // Status message (only if set — don't overwrite existing)
-"@
-Replace-ExactlyOnce -Path $apply -Anchor $applyAnchor -Replacement $applyInsert
+$applyAnchor = "        // Status message (only if set"
+$text = Get-Content -LiteralPath $apply -Raw
+$pos = $text.IndexOf($applyAnchor)
+if ($pos -lt 0) { throw "ApplyResults status anchor not found." }
+$lineEnd = $text.IndexOf([Environment]::NewLine, $pos)
+if ($lineEnd -lt 0) { throw "ApplyResults status line end not found." }
+$insert = "        // BeltFlo uses the same GPS/section inputs with either guidance host." + [Environment]::NewLine +
+          "        SendBeltFloGuidanceState(result);" + [Environment]::NewLine + [Environment]::NewLine
+$text = $text.Insert($pos, $insert)
+Set-Content -LiteralPath $apply -Value $text -Encoding UTF8
 
 Write-Host "BeltFlo integration applied to AgOpenWeb."

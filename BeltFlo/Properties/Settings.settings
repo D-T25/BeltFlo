@@ -32,10 +32,10 @@
       <Value Profile="(Default)"></Value>
     </Setting>
     <Setting Name="YieldScaleMin" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">0</Value>
+      <Value Profile="(Default)">20000</Value>
     </Setting>
     <Setting Name="YieldScaleMax" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">60000</Value>
+      <Value Profile="(Default)">80000</Value>
     </Setting>
     <Setting Name="ProcessingDelaySec" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">10</Value>

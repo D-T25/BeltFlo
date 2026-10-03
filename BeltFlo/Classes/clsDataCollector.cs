@@ -981,7 +981,7 @@ namespace BeltFlo.Classes
             try
             {
                 bool passBreak = pt.PassEnd || yieldRate <= 0;
-                Core.UDPaog?.Send(AogYieldPacket.Build(
+                Core.SendLiveYield(AogYieldPacket.Build(
                     point,
                     Core.Yield?.DiggingWidthM ?? 0,
                     Properties.Settings.Default.YieldScaleMin,

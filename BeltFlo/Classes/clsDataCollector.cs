@@ -984,6 +984,8 @@ namespace BeltFlo.Classes
                 Core.UDPaog?.Send(AogYieldPacket.Build(
                     point,
                     Core.Yield?.DiggingWidthM ?? 0,
+                    Properties.Settings.Default.YieldScaleMin,
+                    Properties.Settings.Default.YieldScaleMax,
                     pt.PassStart,
                     passBreak));
             }
